@@ -359,7 +359,9 @@
                 ['glyphicon-comment', Sao.i18n.gettext('Note'), 'note'],
                 ['glyphicon-cog', Sao.i18n.gettext('Action'), 'action'],
                 ['glyphicon-share-alt', Sao.i18n.gettext('Relate'), 'relate'],
-                ['glyphicon-print', Sao.i18n.gettext('Print'), 'print']
+                ['glyphicon-print', Sao.i18n.gettext('Print'), 'print'],
+                ['glyphicon-export', Sao.i18n.gettext('Export'), 'export'],
+                ['glyphicon-import', Sao.i18n.gettext('Import'), 'import']
             ];
         },
         create_toolbar: function() {
@@ -797,6 +799,12 @@
                 this.buttons.print.find('ul.dropdown-menu')
                     .dropdown('toggle');
             }.bind(this));
+        },
+        export: function(){
+            alert('Export');
+        },
+        import: function(){
+            alert('Import');
         }
     });
 
