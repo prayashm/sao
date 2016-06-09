@@ -714,4 +714,99 @@
             this.callback(revision);
         }
     });
+
+    Sao.Window.CSV = Sao.class_(Object, {
+
+    });
+
+    Sao.Window.Import = Sao.class_(Sao.Window.CSV, {
+        init: function() {
+            console.log(Sao);
+            var dialog = new Sao.Dialog(
+                    Sao.i18n.gettext('Import from CSV'), '', 'lg');
+            this.el = dialog.modal;
+
+            jQuery('<button/>', {
+                'class': 'btn btn-link',
+                'type': 'button'
+            }).append(Sao.i18n.gettext('Cancel')).click(function(){
+                this.el.modal('hide');
+            }).appendTo(dialog.footer);
+
+            jQuery('<button/>', {
+                'class': 'btn btn-primary',
+                'type': 'submit'
+            }).append(Sao.i18n.gettext('OK')).appendTo(dialog.footer);
+            
+            dialog.content.submit(function(e) {
+                this.response('RESPONSE_OK');
+                e.preventDefault();
+            }.bind(this));
+
+            var row_fields = jQuery('<div/>', {
+                'class': 'row'
+            }).appendTo(dialog.body);
+
+            var column_fields_all = jQuery('<div/>', {
+                'class' : 'col-md-4'
+            }).append(jQuery('<label/>',{
+                'text' : Sao.i18n.gettext('All Fields')
+            })).appendTo(row_fields);
+
+            var column_buttons = jQuery('<div/>', {
+                'class' : 'col-md-4'
+            }).appendTo(row_fields);
+
+            jQuery('<button/>', {
+                'class' : 'btn btn-default btn-block',
+                'type' : 'button'
+            }).append(jQuery('<i/>', {
+                    'class': 'glyphicon glyphicon-plus'
+            })).append(Sao.i18n.gettext('Add')).appendTo(column_buttons);
+
+            jQuery('<button/>', {
+                'class' : 'btn btn-default btn-block',
+                'type' : 'button'
+            }).append(jQuery('<i/>', {
+                    'class': 'glyphicon glyphicon-minus'
+            })).append(Sao.i18n.gettext('Remove')).appendTo(column_buttons);
+
+            jQuery('<button/>', {
+                'class' : 'btn btn-default btn-block',
+                'type' : 'button'
+            }).append(jQuery('<i/>', {
+                    'class': 'glyphicon glyphicon-remove'
+            })).append(Sao.i18n.gettext('Clear')).appendTo(column_buttons);
+
+            var column_fields_selected = jQuery('<div/>', {
+                'class' : 'col-md-4'
+            }).append(jQuery('<label/>',{
+                'text' : Sao.i18n.gettext('Fields Selected')
+            })).appendTo(row_fields);
+
+            var chooser = jQuery('<div>', {
+                'class' : 'col-md-12'
+            }).append(jQuery('<label/>',{
+                'text' : Sao.i18n.gettext('File to Import')
+            })).append(jQuery('<input/>', {
+                'type' : 'file'
+            })).appendTo(row_fields);
+
+            var csv_param = jQuery('<div/>', {
+                'class' : 'col-md-12 form-group'
+            }).append(jQuery('<label/>', {
+                'text' : Sao.i18n.gettext('CSV Parameters')
+            })).appendTo('row_fields');
+
+            jQuery('<label/>', {
+                'text' : Sao.i18n.gettext('Delimiter')
+            }).appendTo(csv_param);
+            jQuery('<input/>', {
+                'type' : 'text'
+            }).appendTo(csv_param);
+
+            this.el.modal('show');
+        }
+    });
+
 }());

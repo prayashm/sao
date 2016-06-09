@@ -801,10 +801,10 @@
             }.bind(this));
         },
         export: function(){
-            alert('Export');
+            this.info_bar.message(Sao.i18n.gettext("Export"));
         },
         import: function(){
-            alert('Import');
+            new Sao.Window.Import(this.screen.current_record);
         }
     });
 
