@@ -721,7 +721,7 @@
 
     Sao.Window.Import = Sao.class_(Sao.Window.CSV, {
         init: function() {
-            console.log(Sao);
+
             var dialog = new Sao.Dialog(
                     Sao.i18n.gettext('Import from CSV'), '', 'lg');
             this.el = dialog.modal;
@@ -737,15 +737,12 @@
                 'class': 'btn btn-primary',
                 'type': 'submit'
             }).append(Sao.i18n.gettext('OK')).appendTo(dialog.footer);
-            
-            dialog.content.submit(function(e) {
-                this.response('RESPONSE_OK');
-                e.preventDefault();
-            }.bind(this));
 
             var row_fields = jQuery('<div/>', {
                 'class': 'row'
             }).appendTo(dialog.body);
+
+            jQuery('<hr>').appendTo(dialog.body);
 
             var column_fields_all = jQuery('<div/>', {
                 'class' : 'col-md-4'
@@ -762,21 +759,24 @@
                 'type' : 'button'
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-plus'
-            })).append(Sao.i18n.gettext('Add')).appendTo(column_buttons);
+            }).html('&nbsp;')).append(Sao.i18n.gettext('Add'))
+            .appendTo(column_buttons);
 
             jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
                 'type' : 'button'
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-minus'
-            })).append(Sao.i18n.gettext('Remove')).appendTo(column_buttons);
+            }).html('&nbsp;')).append(Sao.i18n.gettext('Remove'))
+            .appendTo(column_buttons);
 
             jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
                 'type' : 'button'
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-remove'
-            })).append(Sao.i18n.gettext('Clear')).appendTo(column_buttons);
+            }).html('&nbsp;')).append(Sao.i18n.gettext('Clear'))
+            .appendTo(column_buttons);
 
             var column_fields_selected = jQuery('<div/>', {
                 'class' : 'col-md-4'
@@ -784,26 +784,140 @@
                 'text' : Sao.i18n.gettext('Fields Selected')
             })).appendTo(row_fields);
 
-            var chooser = jQuery('<div>', {
+            var form_inline = jQuery('<div/>', {
+                'class' : 'form-inline'
+            }).appendTo(dialog.body);
+
+            jQuery('<hr>').appendTo(dialog.body);
+            
+            var label_chooser = jQuery('<label/>', {
+                'text' : Sao.i18n.gettext('File to Import'),
+                'class' : 'col-sm-4 control-label',
+                'for' : 'input-file'
+            });
+
+            this.el_file_input = jQuery('<input/>', {
+                'type' : 'file',
+                'id' : 'input-file'
+            });
+
+            var div_chooser = jQuery('<div>', {
+                'class' : 'form-group'
+            }).append(label_chooser).append(jQuery('<div/>', {
+                'class' : 'col-sm-8'
+            }).append(this.el_file_input))
+            .appendTo(form_inline);
+
+            var row_csv_param = jQuery('<div/>', {
+                'class' : 'row'
+            }).appendTo(dialog.body);
+
+            var expander_icon = jQuery('<span/>', {
+                'class' : 'glyphicon glyphicon-plus'
+            }).html('&nbsp;');
+
+            var div_label_csv_param = jQuery('<div/>', {
                 'class' : 'col-md-12'
-            }).append(jQuery('<label/>',{
-                'text' : Sao.i18n.gettext('File to Import')
-            })).append(jQuery('<input/>', {
-                'type' : 'file'
-            })).appendTo(row_fields);
-
-            var csv_param = jQuery('<div/>', {
-                'class' : 'col-md-12 form-group'
-            }).append(jQuery('<label/>', {
+            }).append(expander_icon).append(jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('CSV Parameters')
-            })).appendTo('row_fields');
+            })).appendTo(row_csv_param);
 
-            jQuery('<label/>', {
-                'text' : Sao.i18n.gettext('Delimiter')
-            }).appendTo(csv_param);
-            jQuery('<input/>', {
-                'type' : 'text'
-            }).appendTo(csv_param);
+            var expander_csv  = jQuery('<div/>', {
+                'id' : 'expander_csv',
+                'class' : 'collapse'
+            }).appendTo(row_csv_param);
+
+            div_label_csv_param.on('click', function(){
+                expander_icon.toggleClass('glyphicon-plus')
+                .toggleClass('glyphicon-minus');
+                expander_csv.collapse('toggle');
+            });
+
+            var label_delimiter = jQuery('<label/>', {
+                'text' : Sao.i18n.gettext('Delimiter:'),
+                'class' : 'col-sm-2 control-label',
+                'for' : 'input-delimiter'
+            });
+
+            this.el_csv_delimiter = jQuery('<input/>', {
+                'type' : 'text',
+                'class' : 'form-control',
+                'id' : 'input-delimiter',
+                'size' : '1',
+                'maxlength' : '1',
+                'value' : ','
+            });
+
+            var div_delimiter = jQuery('<div/>', {
+                'class' : 'form-group'
+            }).append(label_delimiter).append(jQuery('<div/>', {
+                'class' : 'col-sm-4'
+            }).append(this.el_csv_delimiter))
+            .appendTo(expander_csv);
+
+            var label_quotechar = jQuery('<label/>', {
+                'text' : Sao.i18n.gettext('Quote Char:'),
+                'class' : 'col-sm-2 control-label',
+                'for' : 'input-quotechar'
+            });
+
+            this.el_csv_quotechar = jQuery('<input/>', {
+                'type' : 'text',
+                'class' : 'form-control',
+                'id' : 'input-quotechar',
+                'size' : '1',
+                'maxlength' : '1',
+                'value' : '\"'
+            });            
+
+            var div_quotechar = jQuery('<div/>', {
+                'class' : 'form-group'
+            }).append(label_quotechar).append(jQuery('<div/>', {
+                'class' : 'col-sm-4'
+            }).append(this.el_csv_quotechar))
+            .appendTo(expander_csv);
+
+            var label_encoding = jQuery('<label/>', {
+                'text' : Sao.i18n.gettext('Encoding:'),
+                'class' : 'col-sm-2 control-label',
+                'for' : 'input-encoding'
+            });
+
+            this.el_csv_encoding = jQuery('<select/>', {
+                'class' : 'form-control',
+                'id' : 'input-encoding',
+                'value' : 'utf_8'
+            }).append(jQuery('<option>',{
+                'selected' : '',
+                'val' : 'utf_8'
+            }).html('utf_8'));            
+
+            var div_encoding = jQuery('<div/>', {
+                'class' : 'form-group'
+            }).append(label_encoding).append(jQuery('<div/>', {
+                'class' : 'col-sm-4'
+            }).append(this.el_csv_encoding))
+            .appendTo(expander_csv);
+
+            var label_skip = jQuery('<label/>', {
+                'text' : Sao.i18n.gettext('Lines to Skip:'),
+                'class' : 'col-sm-2 control-label',
+                'for' : 'input-skip'
+            });
+
+            this.el_csv_skip = jQuery('<input/>', {
+                'type' : 'number',
+                'class' : 'form-control',
+                'id' : 'input-skip',
+                'value' : '1'
+            });            
+
+            var div_skip = jQuery('<div/>', {
+                'class' : 'form-group'
+            }).append(label_skip).append(jQuery('<div/>', {
+                'class' : 'col-sm-4'
+            }).append(this.el_csv_skip))
+            .appendTo(expander_csv);
 
             this.el.modal('show');
         }
