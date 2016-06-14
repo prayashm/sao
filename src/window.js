@@ -821,7 +821,9 @@
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-remove'
             }).html('&nbsp;')).append(Sao.i18n.gettext('Clear'))
-            .appendTo(column_buttons);
+            .click(function(){
+                select_fields.empty();
+            }).appendTo(column_buttons);
 
             jQuery('<hr>').appendTo(column_buttons);
 
