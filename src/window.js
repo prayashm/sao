@@ -778,10 +778,7 @@
                     }).html(field.string)
                     .appendTo(select_fields_all);
                 });
-
-                console.log('Done');
-                console.log(this.fields);
-            });
+            }.bind(this));
 
             var column_buttons = jQuery('<div/>', {
                 'class' : 'col-md-4'
@@ -794,19 +791,13 @@
                     'class': 'glyphicon glyphicon-plus'
             }).html('&nbsp;')).append(Sao.i18n.gettext('Add'))
             .click(function(){
-                console.log('Inside click:');
-                console.log(this.fields);
-                // jQuery.each(select_fields_all.val(), function(i, key){
-                //     jQuery('<option/>', {
-                //         'val' : key
-                //     }).html(this.fields[key].string)
-                //     .appendTo(select_fields);
-                //     console.log(key);
-                // });
-            }).appendTo(column_buttons);
-
-            console.log('Outside:');
-            console.log(this.fields);
+                jQuery.each(select_fields_all.val(), function(i, key){
+                    jQuery('<option/>', {
+                        'val' : key
+                    }).html(this.fields[key].string)
+                    .appendTo(select_fields);
+                }.bind(this));
+            }.bind(this)).appendTo(column_buttons);
 
             jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
@@ -814,7 +805,15 @@
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-minus'
             }).html('&nbsp;')).append(Sao.i18n.gettext('Remove'))
-            .appendTo(column_buttons);
+            .click(function(){
+                var remove_fields = select_fields.val();
+                jQuery.each(remove_fields, function(i, field){
+                    select_fields.children('option[value="'+field+'"]')
+                    .each(function(){
+                        this.remove();
+                    });
+                });
+            }).appendTo(column_buttons);
 
             jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
