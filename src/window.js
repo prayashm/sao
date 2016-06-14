@@ -720,7 +720,10 @@
     });
 
     Sao.Window.Import = Sao.class_(Sao.Window.CSV, {
-        init: function() {
+        init: function(screen){
+            this.screen = screen;
+            this.session = Sao.Session.current_session;
+            this.fields = {};
 
             var dialog = new Sao.Dialog(
                     Sao.i18n.gettext('Import from CSV'), '', 'lg');
@@ -750,17 +753,60 @@
                 'text' : Sao.i18n.gettext('All Fields')
             })).appendTo(row_fields);
 
+            var select_fields_all = jQuery('<select/>', {
+                    'class' : 'form-control',
+                    'multiple' : ''
+            }).appendTo(column_fields_all);
+
+            var prm = jQuery.when();
+
+            prm = Sao.rpc({
+                'method' : 'model.' + this.screen.model_name + '.fields_get'
+            }, this.session);
+
+            prm.done(function(all_fields){
+                
+                this.fields = jQuery.extend({}, all_fields);
+                var size = Object.keys(this.fields).length;
+                select_fields_all.attr('size', size);
+                select_fields.attr('size', size);
+
+                jQuery.each(this.fields, function(key, field){
+                    // TODO: Show all levels of fields
+                    jQuery('<option/>', {
+                        'val' : key
+                    }).html(field.string)
+                    .appendTo(select_fields_all);
+                });
+
+                console.log('Done');
+                console.log(this.fields);
+            });
+
             var column_buttons = jQuery('<div/>', {
                 'class' : 'col-md-4'
-            }).appendTo(row_fields);
+            }).append('<label/>').appendTo(row_fields);
 
-            jQuery('<button/>', {
+            var button_add = jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
                 'type' : 'button'
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-plus'
             }).html('&nbsp;')).append(Sao.i18n.gettext('Add'))
-            .appendTo(column_buttons);
+            .click(function(){
+                console.log('Inside click:');
+                console.log(this.fields);
+                // jQuery.each(select_fields_all.val(), function(i, key){
+                //     jQuery('<option/>', {
+                //         'val' : key
+                //     }).html(this.fields[key].string)
+                //     .appendTo(select_fields);
+                //     console.log(key);
+                // });
+            }).appendTo(column_buttons);
+
+            console.log('Outside:');
+            console.log(this.fields);
 
             jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
@@ -778,11 +824,26 @@
             }).html('&nbsp;')).append(Sao.i18n.gettext('Clear'))
             .appendTo(column_buttons);
 
+            jQuery('<hr>').appendTo(column_buttons);
+
+            jQuery('<button/>', {
+                'class' : 'btn btn-default btn-block',
+                'type' : 'button'
+            }).append(jQuery('<i/>', {
+                    'class': 'glyphicon glyphicon-search'
+            }).html('&nbsp;')).append(Sao.i18n.gettext('Auto-Detect'))
+            .appendTo(column_buttons);
+
             var column_fields_selected = jQuery('<div/>', {
                 'class' : 'col-md-4'
             }).append(jQuery('<label/>',{
                 'text' : Sao.i18n.gettext('Fields Selected')
             })).appendTo(row_fields);
+
+            var select_fields = jQuery('<select/>', {
+                'class' : 'form-control',
+                'multiple' : ''
+            }).appendTo(column_fields_selected);
 
             var form_inline = jQuery('<div/>', {
                 'class' : 'form-inline'

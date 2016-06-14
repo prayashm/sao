@@ -804,7 +804,7 @@
             this.info_bar.message(Sao.i18n.gettext("Export"));
         },
         import: function(){
-            new Sao.Window.Import(this.screen.current_record);
+            new Sao.Window.Import(this.screen);
         }
     });
 
