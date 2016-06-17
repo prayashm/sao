@@ -753,30 +753,40 @@
                 'text' : Sao.i18n.gettext('All Fields')
             })).appendTo(row_fields);
 
-            var select_fields_all = jQuery('<select/>', {
-                    'class' : 'form-control',
-                    'multiple' : ''
-            }).appendTo(column_fields_all);
+            var fields_all = jQuery('<ul/>', {
+                    'class' : 'list-group'
+            }).css('cursor', 'pointer').appendTo(column_fields_all);
 
+            // _get_fields
             var prm = jQuery.when();
 
             prm = Sao.rpc({
                 'method' : 'model.' + this.screen.model_name + '.fields_get'
             }, this.session);
 
-            prm.done(function(all_fields){
-                
-                this.fields = jQuery.extend({}, all_fields);
-                var size = Object.keys(this.fields).length;
-                select_fields_all.attr('size', size);
-                select_fields.attr('size', size);
+            prm.done(function(fields){
+                //model_populate
+                console.log(fields);
+                var fields_order = [];
+                jQuery.each(fields, function(key, field){
+                    fields_order.push([field.string, field]);     
+                });
+                fields_order.sort();
+                fields_order = fields_order.map(function(a) {return a[1];});
 
-                jQuery.each(this.fields, function(key, field){
+                this.fields = jQuery.extend({}, fields_order);
+
+                jQuery.each(fields_order, function(key, field){
                     // TODO: Show all levels of fields
-                    jQuery('<option/>', {
-                        'val' : key
-                    }).html(field.string)
-                    .appendTo(select_fields_all);
+                    // TODO: on_row_expanded
+                    if(!field.readonly){
+                        jQuery('<li/>', {
+                            'class' : 'list-group-item',
+                            'key' : key
+                        }).html(field.string).click(function(){
+                            jQuery(this).toggleClass('active');
+                        }).appendTo(fields_all);
+                    }
                 });
             }.bind(this));
 
@@ -791,11 +801,17 @@
                     'class': 'glyphicon glyphicon-plus'
             }).html('&nbsp;')).append(Sao.i18n.gettext('Add'))
             .click(function(){
-                jQuery.each(select_fields_all.val(), function(i, key){
-                    jQuery('<option/>', {
+                // sig_sel
+                // _sig_sel_add
+                // TODO: Make them draggable to re-order
+                jQuery.each(fields_all.children('.active'), function(i, field){
+                    var key = field.getAttribute('key');
+                    jQuery('<li/>', {
+                        'class' : 'list-group-item',
                         'val' : key
-                    }).html(this.fields[key].string)
-                    .appendTo(select_fields);
+                    }).html(this.fields[key].string).click(function(){
+                        jQuery(this).toggleClass('active');
+                    }).appendTo(fields_selected);
                 }.bind(this));
             }.bind(this)).appendTo(column_buttons);
 
@@ -806,13 +822,8 @@
                     'class': 'glyphicon glyphicon-minus'
             }).html('&nbsp;')).append(Sao.i18n.gettext('Remove'))
             .click(function(){
-                var remove_fields = select_fields.val();
-                jQuery.each(remove_fields, function(i, field){
-                    select_fields.children('option[value="'+field+'"]')
-                    .each(function(){
-                        this.remove();
-                    });
-                });
+                // sig_unsel
+                fields_selected.children('li.active').remove();
             }).appendTo(column_buttons);
 
             jQuery('<button/>', {
@@ -822,7 +833,8 @@
                     'class': 'glyphicon glyphicon-remove'
             }).html('&nbsp;')).append(Sao.i18n.gettext('Clear'))
             .click(function(){
-                select_fields.empty();
+                // sig_unsel_all
+                fields_selected.empty();
             }).appendTo(column_buttons);
 
             jQuery('<hr>').appendTo(column_buttons);
@@ -841,10 +853,9 @@
                 'text' : Sao.i18n.gettext('Fields Selected')
             })).appendTo(row_fields);
 
-            var select_fields = jQuery('<select/>', {
-                'class' : 'form-control',
-                'multiple' : ''
-            }).appendTo(column_fields_selected);
+            var fields_selected = jQuery('<ul/>', {
+                'class' : 'list-group'
+            }).css('cursor', 'pointer').appendTo(column_fields_selected);
 
             var form_inline = jQuery('<div/>', {
                 'class' : 'form-inline'
@@ -855,12 +866,17 @@
             var label_chooser = jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('File to Import'),
                 'class' : 'col-sm-4 control-label',
-                'for' : 'input-file'
+                'for' : 'input-csv-file'
             });
 
             this.el_file_input = jQuery('<input/>', {
                 'type' : 'file',
-                'id' : 'input-file'
+                'id' : 'input-csv-file'
+            }).change(function(){
+                console.log(this.files[0]);
+                jQuery.get(this.files[0], function(data){
+                    console.log(data);
+                });
             });
 
             var div_chooser = jQuery('<div>', {
