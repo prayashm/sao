@@ -766,7 +766,6 @@
 
             prm.done(function(fields){
                 //model_populate
-                console.log(fields);
                 var fields_order = [];
                 jQuery.each(fields, function(key, field){
                     fields_order.push([field.string, field]);     
@@ -872,11 +871,6 @@
             this.el_file_input = jQuery('<input/>', {
                 'type' : 'file',
                 'id' : 'input-csv-file'
-            }).change(function(){
-                console.log(this.files[0]);
-                jQuery.get(this.files[0], function(data){
-                    console.log(data);
-                });
             });
 
             var div_chooser = jQuery('<div>', {
