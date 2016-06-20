@@ -779,12 +779,16 @@
                     // TODO: Show all levels of fields
                     // TODO: on_row_expanded
                     if(!field.readonly){
-                        jQuery('<li/>', {
+                        var el_field = jQuery('<li/>', {
                             'class' : 'list-group-item',
                             'key' : key
                         }).html(field.string).click(function(){
                             jQuery(this).toggleClass('active');
                         }).appendTo(fields_all);
+
+                        if(field.required){
+                            el_field.addClass('active');
+                        }
                     }
                 });
             }.bind(this));
