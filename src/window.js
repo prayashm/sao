@@ -724,6 +724,8 @@
             this.screen = screen;
             this.session = Sao.Session.current_session;
             this.fields = {};
+            this.fields_data = {};
+            this.fields_invert = {};
 
             var dialog = new Sao.Dialog(
                     Sao.i18n.gettext('Import from CSV'), '', 'lg');
@@ -734,7 +736,7 @@
                 'type': 'button'
             }).append(Sao.i18n.gettext('Cancel')).click(function(){
                 this.el.modal('hide');
-            }).appendTo(dialog.footer);
+            }.bind(this)).appendTo(dialog.footer);
 
             jQuery('<button/>', {
                 'class': 'btn btn-primary',
@@ -753,44 +755,12 @@
                 'text' : Sao.i18n.gettext('All Fields')
             })).appendTo(row_fields);
 
-            var fields_all = jQuery('<ul/>', {
+            this.fields_all = jQuery('<ul/>', {
                     'class' : 'list-group'
             }).css('cursor', 'pointer').appendTo(column_fields_all);
 
-            // _get_fields
-            var prm = jQuery.when();
-
-            prm = Sao.rpc({
-                'method' : 'model.' + this.screen.model_name + '.fields_get'
-            }, this.session);
-
-            prm.done(function(fields){
-                //model_populate
-                var fields_order = [];
-                jQuery.each(fields, function(key, field){
-                    fields_order.push([field.string, field]);     
-                });
-                fields_order.sort();
-                fields_order = fields_order.map(function(a) {return a[1];});
-
-                this.fields = jQuery.extend({}, fields_order);
-
-                jQuery.each(fields_order, function(key, field){
-                    // TODO: Show all levels of fields
-                    // TODO: on_row_expanded
-                    if(!field.readonly){
-                        var el_field = jQuery('<li/>', {
-                            'class' : 'list-group-item',
-                            'key' : key
-                        }).html(field.string).click(function(){
-                            jQuery(this).toggleClass('active');
-                        }).appendTo(fields_all);
-
-                        if(field.required){
-                            el_field.addClass('active');
-                        }
-                    }
-                });
+            this.get_fields(this.screen.model_name).done(function(fields){
+                this.model_populate(fields);
             }.bind(this));
 
             var column_buttons = jQuery('<div/>', {
@@ -996,7 +966,71 @@
             .appendTo(expander_csv);
 
             this.el.modal('show');
-        }
+        },
+        get_fields: function(model){
+            var prm = jQuery.when();
+            prm = Sao.rpc({
+                'method' : 'model.' + model + '.fields_get'
+            }, this.session);
+
+            return prm;
+        },
+        model_populate: function (fields, parent_node, prefix_field, 
+            prefix_name){
+                if(parent_node === undefined) parent_node = null;
+                if(prefix_field === undefined) prefix_field = '';
+                if(prefix_name === undefined) prefix_name = '';
+
+                var fields_order = [];
+                jQuery.each(fields, function(key, field){
+                    fields_order.push([field.string, field.name]);     
+                });
+                fields_order.sort();    
+                fields_order = fields_order.map(function(a) {return a[1];});
+                
+                fields_order.forEach(function(field){
+                    // TODO: Show all levels of fields
+                    if(!fields[field].readonly){
+                        if (parent_node === null) parent_node = this.fields_all;
+                        this.fields_data[prefix_field + field] = fields[field];
+                        var name = fields[field].string || field;
+                        name = prefix_name + name;
+
+                        var node = jQuery('<li/>', {
+                            'class' : 'list-group-item',
+                            'field' : field
+                        }).html(name).click(function(){
+                            jQuery(this).toggleClass('active');
+                        }).appendTo(parent_node);
+
+                        // Only One2Many can be nested for import
+                        if (fields[field].type == 'one2many'){
+                            var expander_icon = jQuery('<i/>', {
+                                'class' : 'glyphicon glyphicon-plus'
+                            }).click(function(e){
+                                expander_icon.toggleClass('glyphicon-plus')
+                                .toggleClass('glyphicon-minus');
+                                // TODO: Find better way to trigger on_row_expand
+                                if(expander_icon[0].classList[1] ==
+                                    'glyphicon-minus'){
+                                    var container_node = jQuery('<ul/>', {
+                                        'class' : 'list-group'
+                                    });
+                                    this.get_fields(fields[field].relation)
+                                    .done(function(child_fields){
+                                        this.model_populate(fields,
+                                            container_node, field+'/',
+                                            fields[field].string+'/');
+                                    }.bind(this));
+                                } else {
+                                    // Remove container_node
+                                }
+                            }.bind(this)).html('&nbsp;').prependTo(node);
+                        }
+
+                    }
+                }.bind(this));
+            }
     });
 
 }());
