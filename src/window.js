@@ -750,14 +750,15 @@
             jQuery('<hr>').appendTo(dialog.body);
 
             var column_fields_all = jQuery('<div/>', {
-                'class' : 'col-md-4'
+                'class' : 'col-md-4 column_fields'
             }).append(jQuery('<label/>',{
                 'text' : Sao.i18n.gettext('All Fields')
             })).appendTo(row_fields);
 
             this.fields_all = jQuery('<ul/>', {
-                    'class' : 'list-group'
-            }).css('cursor', 'pointer').appendTo(column_fields_all);
+                'class' : 'list-unstyled'
+            }).css('cursor', 'pointer')
+            .appendTo(column_fields_all);
 
             this.get_fields(this.screen.model_name).done(function(fields){
                 this.model_populate(fields);
@@ -772,20 +773,19 @@
                 'type' : 'button'
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-plus'
-            }).html('&nbsp;')).append(Sao.i18n.gettext('Add'))
+            })).append(Sao.i18n.gettext(' Add'))
             .click(function(){
                 // sig_sel
                 // _sig_sel_add
                 // TODO: Make them draggable to re-order
-                jQuery.each(fields_all.children('.active'), function(i, field){
-                    var key = field.getAttribute('key');
-                    jQuery('<li/>', {
-                        'class' : 'list-group-item',
-                        'val' : key
-                    }).html(this.fields[key].string).click(function(){
-                        jQuery(this).toggleClass('active');
+                this.fields_all.find('.selected').each(function(i, field){
+                    field = jQuery(field);
+                    var node = jQuery('<li/>', {
+                        'field' : field.attr('field'),
+                    }).html(field.attr('name')).click(function(){
+                        node.toggleClass('selected');
                     }).appendTo(fields_selected);
-                }.bind(this));
+                });  
             }.bind(this)).appendTo(column_buttons);
 
             jQuery('<button/>', {
@@ -793,10 +793,10 @@
                 'type' : 'button'
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-minus'
-            }).html('&nbsp;')).append(Sao.i18n.gettext('Remove'))
+            })).append(Sao.i18n.gettext(' Remove'))
             .click(function(){
                 // sig_unsel
-                fields_selected.children('li.active').remove();
+                fields_selected.children('li.selected').remove();
             }).appendTo(column_buttons);
 
             jQuery('<button/>', {
@@ -804,7 +804,7 @@
                 'type' : 'button'
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-remove'
-            }).html('&nbsp;')).append(Sao.i18n.gettext('Clear'))
+            })).append(Sao.i18n.gettext(' Clear'))
             .click(function(){
                 // sig_unsel_all
                 fields_selected.empty();
@@ -817,17 +817,17 @@
                 'type' : 'button'
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-search'
-            }).html('&nbsp;')).append(Sao.i18n.gettext('Auto-Detect'))
+            })).append(Sao.i18n.gettext(' Auto-Detect'))
             .appendTo(column_buttons);
 
             var column_fields_selected = jQuery('<div/>', {
-                'class' : 'col-md-4'
+                'class' : 'col-md-4 column_fields'
             }).append(jQuery('<label/>',{
                 'text' : Sao.i18n.gettext('Fields Selected')
             })).appendTo(row_fields);
 
             var fields_selected = jQuery('<ul/>', {
-                'class' : 'list-group'
+                'class' : 'list-unstyled'
             }).css('cursor', 'pointer').appendTo(column_fields_selected);
 
             var form_inline = jQuery('<div/>', {
@@ -977,57 +977,62 @@
         },
         model_populate: function (fields, parent_node, prefix_field, 
             prefix_name){
-                if(parent_node === undefined) parent_node = null;
+                if(parent_node === undefined) parent_node = this.fields_all;
                 if(prefix_field === undefined) prefix_field = '';
                 if(prefix_name === undefined) prefix_name = '';
 
-                var fields_order = [];
-                jQuery.each(fields, function(key, field){
-                    fields_order.push([field.string, field.name]);     
+                var fields_order = Object.keys(fields);
+                fields_order.sort(function(a,b){
+                    return fields[a].string - fields[b].string;
                 });
-                fields_order.sort();    
-                fields_order = fields_order.map(function(a) {return a[1];});
                 
                 fields_order.forEach(function(field){
                     // TODO: Show all levels of fields
                     if(!fields[field].readonly){
-                        if (parent_node === null) parent_node = this.fields_all;
                         this.fields_data[prefix_field + field] = fields[field];
                         var name = fields[field].string || field;
-                        name = prefix_name + name;
-
                         var node = jQuery('<li/>', {
-                            'class' : 'list-group-item',
-                            'field' : field
+                            'field' : prefix_field + field,
+                            'name' : prefix_name + name
                         }).html(name).click(function(){
-                            jQuery(this).toggleClass('active');
+                            node.toggleClass('selected');
                         }).appendTo(parent_node);
-
+                        name = prefix_name + name;
                         // Only One2Many can be nested for import
+                        var relation;
                         if (fields[field].type == 'one2many'){
+                            relation = fields[field].relation;
+                        } else {
+                            relation = null;
+                        }
+                        this.fields_invert[name] = prefix_field + field;
+                        if (relation) {
+                            node.prepend(' ');
                             var expander_icon = jQuery('<i/>', {
                                 'class' : 'glyphicon glyphicon-plus'
                             }).click(function(e){
+                                e.stopPropagation();
                                 expander_icon.toggleClass('glyphicon-plus')
                                 .toggleClass('glyphicon-minus');
-                                // TODO: Find better way to trigger on_row_expand
                                 if(expander_icon[0].classList[1] ==
                                     'glyphicon-minus'){
-                                    var container_node = jQuery('<ul/>', {
-                                        'class' : 'list-group'
-                                    });
-                                    this.get_fields(fields[field].relation)
+                                    var container_node = jQuery('<ul/>')
+                                    .css('list-style', 'none')
+                                    .insertAfter(node);
+                                    this.get_fields(relation)
                                     .done(function(child_fields){
-                                        this.model_populate(fields,
-                                            container_node, field+'/',
-                                            fields[field].string+'/');
+                                        this.model_populate(
+                                            child_fields,
+                                            container_node,
+                                            prefix_field+field+'/',
+                                            name+'/'
+                                        );
                                     }.bind(this));
                                 } else {
-                                    // Remove container_node
+                                    node.next().html('');
                                 }
-                            }.bind(this)).html('&nbsp;').prependTo(node);
+                            }.bind(this)).prependTo(node);
                         }
-
                     }
                 }.bind(this));
             }
