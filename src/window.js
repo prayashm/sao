@@ -784,7 +784,7 @@
                         'field' : field.attr('field'),
                     }).html(field.attr('name')).click(function(){
                         node.toggleClass('selected');
-                    }).appendTo(fields_selected);
+                    }).appendTo(this.fields_selected);
                 });  
             }.bind(this)).appendTo(column_buttons);
 
@@ -796,7 +796,7 @@
             })).append(Sao.i18n.gettext(' Remove'))
             .click(function(){
                 // sig_unsel
-                fields_selected.children('li.selected').remove();
+                this.fields_selected.children('li.selected').remove();
             }).appendTo(column_buttons);
 
             jQuery('<button/>', {
@@ -807,7 +807,7 @@
             })).append(Sao.i18n.gettext(' Clear'))
             .click(function(){
                 // sig_unsel_all
-                fields_selected.empty();
+                this.fields_selected.empty();
             }).appendTo(column_buttons);
 
             jQuery('<hr>').appendTo(column_buttons);
@@ -820,15 +820,15 @@
             })).append(Sao.i18n.gettext(' Auto-Detect'))
             .appendTo(column_buttons);
 
-            var column_fields_selected = jQuery('<div/>', {
+            var column_this.fields_selected = jQuery('<div/>', {
                 'class' : 'col-md-4 column_fields'
             }).append(jQuery('<label/>',{
                 'text' : Sao.i18n.gettext('Fields Selected')
             })).appendTo(row_fields);
 
-            var fields_selected = jQuery('<ul/>', {
+            this.fields_selected = jQuery('<ul/>', {
                 'class' : 'list-unstyled'
-            }).css('cursor', 'pointer').appendTo(column_fields_selected);
+            }).css('cursor', 'pointer').appendTo(column_this.fields_selected);
 
             var form_inline = jQuery('<div/>', {
                 'class' : 'form-inline'
@@ -977,65 +977,65 @@
         },
         model_populate: function (fields, parent_node, prefix_field, 
             prefix_name){
-                if(parent_node === undefined) parent_node = this.fields_all;
-                if(prefix_field === undefined) prefix_field = '';
-                if(prefix_name === undefined) prefix_name = '';
+            if(parent_node === undefined) parent_node = this.fields_all;
+            if(prefix_field === undefined) prefix_field = '';
+            if(prefix_name === undefined) prefix_name = '';
 
-                var fields_order = Object.keys(fields);
-                fields_order.sort(function(a,b){
-                    return fields[a].string - fields[b].string;
-                });
-                
-                fields_order.forEach(function(field){
-                    // TODO: Show all levels of fields
-                    if(!fields[field].readonly){
-                        this.fields_data[prefix_field + field] = fields[field];
-                        var name = fields[field].string || field;
-                        var node = jQuery('<li/>', {
-                            'field' : prefix_field + field,
-                            'name' : prefix_name + name
-                        }).html(name).click(function(){
-                            node.toggleClass('selected');
-                        }).appendTo(parent_node);
-                        name = prefix_name + name;
-                        // Only One2Many can be nested for import
-                        var relation;
-                        if (fields[field].type == 'one2many'){
-                            relation = fields[field].relation;
-                        } else {
-                            relation = null;
-                        }
-                        this.fields_invert[name] = prefix_field + field;
-                        if (relation) {
-                            node.prepend(' ');
-                            var expander_icon = jQuery('<i/>', {
-                                'class' : 'glyphicon glyphicon-plus'
-                            }).click(function(e){
-                                e.stopPropagation();
-                                expander_icon.toggleClass('glyphicon-plus')
-                                .toggleClass('glyphicon-minus');
-                                if(expander_icon[0].classList[1] ==
-                                    'glyphicon-minus'){
-                                    var container_node = jQuery('<ul/>')
-                                    .css('list-style', 'none')
-                                    .insertAfter(node);
-                                    this.get_fields(relation)
-                                    .done(function(child_fields){
-                                        this.model_populate(
-                                            child_fields,
-                                            container_node,
-                                            prefix_field+field+'/',
-                                            name+'/'
-                                        );
-                                    }.bind(this));
-                                } else {
-                                    node.next().html('');
-                                }
-                            }.bind(this)).prependTo(node);
-                        }
+            var fields_order = Object.keys(fields);
+            fields_order.sort(function(a,b){
+                return fields[a].string - fields[b].string;
+            });
+            
+            fields_order.forEach(function(field){
+                // TODO: Show all levels of fields
+                if(!fields[field].readonly){
+                    this.fields_data[prefix_field + field] = fields[field];
+                    var name = fields[field].string || field;
+                    var node = jQuery('<li/>', {
+                        'field' : prefix_field + field,
+                        'name' : prefix_name + name
+                    }).html(name).click(function(){
+                        node.toggleClass('selected');
+                    }).appendTo(parent_node);
+                    name = prefix_name + name;
+                    // Only One2Many can be nested for import
+                    var relation;
+                    if (fields[field].type == 'one2many'){
+                        relation = fields[field].relation;
+                    } else {
+                        relation = null;
                     }
-                }.bind(this));
-            }
+                    this.fields_invert[name] = prefix_field + field;
+                    if (relation) {
+                        node.prepend(' ');
+                        var expander_icon = jQuery('<i/>', {
+                            'class' : 'glyphicon glyphicon-plus'
+                        }).click(function(e){
+                            e.stopPropagation();
+                            expander_icon.toggleClass('glyphicon-plus')
+                            .toggleClass('glyphicon-minus');
+                            if(expander_icon[0].classList[1] ==
+                                'glyphicon-minus'){
+                                var container_node = jQuery('<ul/>')
+                            .css('list-style', 'none')
+                            .insertAfter(node);
+                            this.get_fields(relation)
+                            .done(function(child_fields){
+                                this.model_populate(
+                                    child_fields,
+                                    container_node,
+                                    prefix_field+field+'/',
+                                    name+'/'
+                                    );
+                            }.bind(this));
+                        } else {
+                            node.next().html('');
+                        }
+                    }.bind(this)).prependTo(node);
+                    }
+                }
+            }.bind(this));
+        }
     });
 
 }());

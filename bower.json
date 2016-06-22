@@ -21,7 +21,8 @@
     "eonasdan-bootstrap-datetimepicker": "~4.7.14",
     "gettext.js": "~0.5.0",
     "d3": "~3.5.0",
-    "c3": "~0.4.10"
+    "c3": "~0.4.10",
+    "papaparse": "~4.1.2"
   },
   "devDependencies": {
     "qunit": "~1.18.0"
