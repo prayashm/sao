@@ -785,7 +785,7 @@
                     }).html(field.attr('name')).click(function(){
                         node.toggleClass('selected');
                     }).appendTo(this.fields_selected);
-                });  
+                }.bind(this));  
             }.bind(this)).appendTo(column_buttons);
 
             jQuery('<button/>', {
@@ -797,7 +797,7 @@
             .click(function(){
                 // sig_unsel
                 this.fields_selected.children('li.selected').remove();
-            }).appendTo(column_buttons);
+            }.bind(this)).appendTo(column_buttons);
 
             jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
@@ -806,9 +806,8 @@
                     'class': 'glyphicon glyphicon-remove'
             })).append(Sao.i18n.gettext(' Clear'))
             .click(function(){
-                // sig_unsel_all
-                this.fields_selected.empty();
-            }).appendTo(column_buttons);
+                this.sig_unsel_all();
+            }.bind(this)).appendTo(column_buttons);
 
             jQuery('<hr>').appendTo(column_buttons);
 
@@ -818,9 +817,11 @@
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-search'
             })).append(Sao.i18n.gettext(' Auto-Detect'))
-            .appendTo(column_buttons);
+            .click(function(){
+                this.auto_detect();
+            }.bind(this)).appendTo(column_buttons);
 
-            var column_this.fields_selected = jQuery('<div/>', {
+            var column_fields_selected = jQuery('<div/>', {
                 'class' : 'col-md-4 column_fields'
             }).append(jQuery('<label/>',{
                 'text' : Sao.i18n.gettext('Fields Selected')
@@ -828,7 +829,7 @@
 
             this.fields_selected = jQuery('<ul/>', {
                 'class' : 'list-unstyled'
-            }).css('cursor', 'pointer').appendTo(column_this.fields_selected);
+            }).css('cursor', 'pointer').appendTo(column_fields_selected);
 
             var form_inline = jQuery('<div/>', {
                 'class' : 'form-inline'
@@ -981,13 +982,11 @@
             if(prefix_field === undefined) prefix_field = '';
             if(prefix_name === undefined) prefix_name = '';
 
-            var fields_order = Object.keys(fields);
-            fields_order.sort(function(a,b){
-                return fields[a].string - fields[b].string;
-            });
-            
+            var fields_order = Object.keys(fields).sort(function(a,b){
+                return fields[b].string > fields[a].string;
+            }).reverse();
+
             fields_order.forEach(function(field){
-                // TODO: Show all levels of fields
                 if(!fields[field].readonly){
                     this.fields_data[prefix_field + field] = fields[field];
                     var name = fields[field].string || field;
@@ -1010,12 +1009,13 @@
                         node.prepend(' ');
                         var expander_icon = jQuery('<i/>', {
                             'class' : 'glyphicon glyphicon-plus'
-                        }).click(function(e){
+                        }).click(function(e, callback){
                             e.stopPropagation();
                             expander_icon.toggleClass('glyphicon-plus')
                             .toggleClass('glyphicon-minus');
                             if(expander_icon[0].classList[1] ==
                                 'glyphicon-minus'){
+                                // on_row_expanded
                                 var container_node = jQuery('<ul/>')
                             .css('list-style', 'none')
                             .insertAfter(node);
@@ -1027,6 +1027,9 @@
                                     prefix_field+field+'/',
                                     name+'/'
                                     );
+                                if(typeof callback === 'function'){
+                                    callback();
+                                }
                             }.bind(this));
                         } else {
                             node.next().html('');
@@ -1035,6 +1038,64 @@
                     }
                 }
             }.bind(this));
+        },
+        sig_unsel_all: function(){
+            this.fields_selected.empty();
+        },
+        auto_detect: function(){
+            var fname = this.el_file_input.val();
+            if(!fname){
+                Sao.common.message.run(
+                    Sao.i18n.gettext('You must select an import file first'));
+                return true;
+            }
+            this.sig_unsel_all();
+            this.el_csv_skip.val(1);
+            Papa.parse(this.el_file_input[0].files[0], {
+                config: {
+                    delimiter: this.el_csv_delimiter.val(),
+                    // quoteChar: this.el_csv_quotechar.val(),
+                    encoding: this.el_csv_encoding.val()
+                },
+                error: function(err, file, inputElem, reason){
+                    Sao.common.warning(
+                        Sao.i18n.gettext('Error occured in loading the file'));
+                },
+                complete: function(results) {
+                    results.data[0].forEach(function(word){
+                        if(!(word in this.fields_invert) && 
+                            !(word in this.fields)){
+                            var parents = word.split('/');
+                            var parent_node = this.fields_all;
+                            for(var i=0; i<parents.length-1; i++){
+                                parent_node = parent_node
+                                .children('li:contains("'+parents[i]+'")');
+                                parent_node.children('i').trigger('click');
+                                parent_node = jQuery(parent_node).next();
+                            }
+                        }
+                        var name,field;
+                        if(word in this.fields_invert){
+                            name = word;
+                            field = this.fields_invert[word];
+                        } else if (word in this.fields) {
+                            name = this.fields[word][0];
+                            field = [word];
+                        } else {
+                            Sao.common.warning.run(
+                                Sao.i18n.gettext(
+                                    'Error processing the file at field '+word+'.'),
+                                    Sao.i18n.gettext('Error'));
+                            return true;
+                        }
+                        var node = jQuery('<li/>', {
+                            'field': field
+                        }).html(name).click(function(){
+                            node.toggleClass('selected');
+                        }).appendTo(this.fields_selected);
+                    }.bind(this));
+                }.bind(this)
+            });
         }
     });
 
