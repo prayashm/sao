@@ -735,13 +735,16 @@
                 'class': 'btn btn-link',
                 'type': 'button'
             }).append(Sao.i18n.gettext('Cancel')).click(function(){
-                this.el.modal('hide');
+                this.response('RESPONSE_CANCEL');
             }.bind(this)).appendTo(dialog.footer);
 
             jQuery('<button/>', {
                 'class': 'btn btn-primary',
                 'type': 'submit'
-            }).append(Sao.i18n.gettext('OK')).appendTo(dialog.footer);
+            }).append(Sao.i18n.gettext('OK')).click(function(e){
+                this.response('RESPONSE_OK');
+                e.preventDefault();
+            }.bind(this)).appendTo(dialog.footer);
 
             var row_fields = jQuery('<div/>', {
                 'class': 'row'
@@ -778,11 +781,12 @@
                 // sig_sel
                 // _sig_sel_add
                 // TODO: Make them draggable to re-order
-                this.fields_all.find('.selected').each(function(i, field){
-                    field = jQuery(field);
+                this.fields_all.find('.selected').each(function(i, el_field){
+                    el_field = jQuery(el_field);
+                    var field = el_field.attr('field');
                     var node = jQuery('<li/>', {
-                        'field' : field.attr('field'),
-                    }).html(field.attr('name')).click(function(){
+                        'field' : field,
+                    }).html(this.fields[field]).click(function(){
                         node.toggleClass('selected');
                     }).appendTo(this.fields_selected);
                 }.bind(this));  
@@ -968,14 +972,6 @@
 
             this.el.modal('show');
         },
-        get_fields: function(model){
-            var prm = jQuery.when();
-            prm = Sao.rpc({
-                'method' : 'model.' + model + '.fields_get'
-            }, this.session);
-
-            return prm;
-        },
         model_populate: function (fields, parent_node, prefix_field, 
             prefix_name){
             if(parent_node === undefined) parent_node = this.fields_all;
@@ -991,8 +987,7 @@
                     this.fields_data[prefix_field + field] = fields[field];
                     var name = fields[field].string || field;
                     var node = jQuery('<li/>', {
-                        'field' : prefix_field + field,
-                        'name' : prefix_name + name
+                        'field' : prefix_field + field
                     }).html(name).click(function(){
                         node.toggleClass('selected');
                     }).appendTo(parent_node);
@@ -1004,40 +999,48 @@
                     } else {
                         relation = null;
                     }
+                    this.fields[prefix_field + field] = [name, relation];
                     this.fields_invert[name] = prefix_field + field;
                     if (relation) {
                         node.prepend(' ');
                         var expander_icon = jQuery('<i/>', {
                             'class' : 'glyphicon glyphicon-plus'
-                        }).click(function(e, callback){
+                        }).click(function(e){
                             e.stopPropagation();
                             expander_icon.toggleClass('glyphicon-plus')
                             .toggleClass('glyphicon-minus');
-                            if(expander_icon[0].classList[1] ==
-                                'glyphicon-minus'){
-                                // on_row_expanded
-                                var container_node = jQuery('<ul/>')
-                            .css('list-style', 'none')
-                            .insertAfter(node);
-                            this.get_fields(relation)
-                            .done(function(child_fields){
-                                this.model_populate(
-                                    child_fields,
-                                    container_node,
-                                    prefix_field+field+'/',
-                                    name+'/'
-                                    );
-                                if(typeof callback === 'function'){
-                                    callback();
-                                }
-                            }.bind(this));
-                        } else {
-                            node.next().html('');
-                        }
-                    }.bind(this)).prependTo(node);
+                            if(expander_icon[0].classList[1] == 'glyphicon-minus'){
+                                this.on_row_expanded(node);
+                            } else {
+                                node.next('ul').remove();
+                            }
+                        }.bind(this)).prependTo(node);
                     }
                 }
             }.bind(this));
+        },
+        get_fields: function(model){
+            var prm = jQuery.when();
+            prm = Sao.rpc({
+                'method' : 'model.' + model + '.fields_get'
+            }, this.session);
+            return prm;
+        },
+        on_row_expanded: function(node){
+            // # autodetect could call for node without children
+            // if child is None:
+            //     return
+            if (node.next()[0].localName != 'ul'){
+                var prefix_field = node.attr('field');
+                var name = this.fields[prefix_field][0];
+                var model = this.fields[prefix_field][1];
+                var container_node = jQuery('<ul/>').css('list-style', 'none')
+                                        .insertAfter(node);
+                this.get_fields(model).done(function(fields){
+                    this.model_populate(fields, container_node,
+                        prefix_field+'/', name+'/');
+                }.bind(this));
+            }
         },
         sig_unsel_all: function(){
             this.fields_selected.empty();
@@ -1063,15 +1066,30 @@
                 },
                 complete: function(results) {
                     results.data[0].forEach(function(word){
+                        var parent_node = this.fields_all;
                         if(!(word in this.fields_invert) && 
                             !(word in this.fields)){
+                            var iter = this.fields_all.children('li');
+                            var prefix = '';
                             var parents = word.split('/');
-                            var parent_node = this.fields_all;
                             for(var i=0; i<parents.length-1; i++){
-                                parent_node = parent_node
-                                .children('li:contains("'+parents[i]+'")');
-                                parent_node.children('i').trigger('click');
-                                parent_node = jQuery(parent_node).next();
+                                var j = 0;
+                                while(j < iter.length){
+                                    iter[j] = jQuery(iter[j]);
+                                    if(iter[j].text().trim() == parents[i] ||
+                                        iter[j].attr('field') == 
+                                        (prefix+parents[i])){
+                                        this.on_row_expanded(iter[j]);
+                                        iter = iter[j].next('ul')
+                                        .children('li');
+                                        // ^ needs to wait till, get_fields is
+                                        // resolved
+                                        j = 0;
+                                        break;
+                                    }
+                                    j++;
+                                }
+                                prefix = parents[i] + '/';
                             }
                         }
                         var name,field;
@@ -1094,6 +1112,66 @@
                             node.toggleClass('selected');
                         }).appendTo(this.fields_selected);
                     }.bind(this));
+                }.bind(this)
+            });
+        },
+        response: function(response_id){
+            if(response_id == 'RESPONSE_OK'){
+                var fields = [];
+                this.fields_selected.children('li').each(function(i, field_el){
+                    fields.push(field_el.getAttribute('field'));
+                });
+                this.el.modal('hide');
+                var fname = this.el_file_input.val();
+                if(fname){
+                    this.import_csv(fname, fields);
+                }
+            } else {
+                this.el.modal('hide');
+            }
+        },
+        import_csv: function(fname, fields){
+            var skip = this.el_csv_skip.val();
+            var encoding = this.el_csv_encoding.val();
+
+            Papa.parse(this.el_file_input[0].files[0], {
+                config: {
+                    delimiter: this.el_csv_delimiter.val(),
+                    // quoteChar: this.el_csv_quotechar.val(),
+                    encoding: encoding
+                },
+                error: function(err, file, inputElem, reason){
+                    Sao.common.warning(
+                        Sao.i18n.gettext('Error occured in loading the file'));
+                },
+                complete: function(results) {
+                    function encode_utf8(s) {
+                        return unescape(encodeURIComponent(s));
+                    }
+                    var data = [];
+                    results.data.pop('');
+                    results.data.forEach(function(line, i){
+                        if(i < skip){
+                            return;
+                        }
+                        var arr = [];
+                        line.forEach(function(x){
+                            arr.push(encode_utf8(x));
+                        });
+                        data.push(arr);
+                    });
+                    Sao.rpc({
+                        'method' : 'model.' + this.screen.model_name + '.import_data',
+                        'params' : [fields, data, {}] 
+                    }, this.session).done(function(count){
+                        if (count == 1){
+                            Sao.common.message.run(
+                                Sao.i18n.gettext(count+' record imported'));
+                        } else {
+                            Sao.common.message.run(
+                                Sao.i18n.gettext(count+' records imported'));
+                        }
+                    });
                 }.bind(this)
             });
         }
