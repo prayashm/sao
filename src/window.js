@@ -1009,7 +1009,8 @@
                             e.stopPropagation();
                             expander_icon.toggleClass('glyphicon-plus')
                             .toggleClass('glyphicon-minus');
-                            if(expander_icon[0].classList[1] == 'glyphicon-minus'){
+                            if(expander_icon[0].classList[1] == 
+                                'glyphicon-minus'){
                                 this.on_row_expanded(node);
                             } else {
                                 node.next('ul').remove();
@@ -1036,10 +1037,13 @@
                 var model = this.fields[prefix_field][1];
                 var container_node = jQuery('<ul/>').css('list-style', 'none')
                                         .insertAfter(node);
+                var dfd = $.Deferred();
                 this.get_fields(model).done(function(fields){
                     this.model_populate(fields, container_node,
                         prefix_field+'/', name+'/');
+                    dfd.resolve(this);
                 }.bind(this));
+                return dfd.promise();
             }
         },
         sig_unsel_all: function(){
@@ -1066,54 +1070,64 @@
                 },
                 complete: function(results) {
                     results.data[0].forEach(function(word){
-                        var parent_node = this.fields_all;
-                        if(!(word in this.fields_invert) && 
-                            !(word in this.fields)){
-                            var iter = this.fields_all.children('li');
+                        if(word in this.fields_invert || word in this.fields){
+                            this.auto_select(word);
+                        } else {
+                            var fields = this.fields_all.children('li');
                             var prefix = '';
                             var parents = word.split('/');
-                            for(var i=0; i<parents.length-1; i++){
-                                var j = 0;
-                                while(j < iter.length){
-                                    iter[j] = jQuery(iter[j]);
-                                    if(iter[j].text().trim() == parents[i] ||
-                                        iter[j].attr('field') == 
-                                        (prefix+parents[i])){
-                                        this.on_row_expanded(iter[j]);
-                                        iter = iter[j].next('ul')
-                                        .children('li');
-                                        // ^ needs to wait till, get_fields is
-                                        // resolved
-                                        j = 0;
-                                        break;
-                                    }
-                                    j++;
-                                }
-                                prefix = parents[i] + '/';
-                            }
+                            this.traverse(fields, prefix, parents, 0);
                         }
-                        var name,field;
-                        if(word in this.fields_invert){
-                            name = word;
-                            field = this.fields_invert[word];
-                        } else if (word in this.fields) {
-                            name = this.fields[word][0];
-                            field = [word];
-                        } else {
-                            Sao.common.warning.run(
-                                Sao.i18n.gettext(
-                                    'Error processing the file at field '+word+'.'),
-                                    Sao.i18n.gettext('Error'));
-                            return true;
-                        }
-                        var node = jQuery('<li/>', {
-                            'field': field
-                        }).html(name).click(function(){
-                            node.toggleClass('selected');
-                        }).appendTo(this.fields_selected);
                     }.bind(this));
                 }.bind(this)
             });
+        },
+        auto_select: function(word){
+            var name,field;
+            if(word in this.fields_invert){
+                name = word;
+                field = this.fields_invert[word];
+            } else if (word in this.fields) {
+                name = this.fields[word][0];
+                field = [word];
+            } else {
+                Sao.common.warning.run(
+                    Sao.i18n.gettext(
+                        'Error processing the file at field '+
+                        word+'.'),
+                        Sao.i18n.gettext('Error'));
+                return true;
+            }
+            var node = jQuery('<li/>', {
+                'field': field
+            }).html(name).click(function(){
+                node.toggleClass('selected');
+            }).appendTo(this.fields_selected);
+        },
+        traverse: function(fields, prefix, parents, i){
+            if(i >= parents.length-1) {
+                this.auto_select(parents.join('/'));
+                return;
+            }
+            var field, item;
+            for(item = 0; item<fields.length; item++){
+                field = jQuery(fields[item]);
+                if(field.text().trim() == parents[i] || 
+                field.attr('field') == (prefix+parents[i])){
+                    field.children('i')
+                        .toggleClass('glyphicon-plus glyphicon-minus');
+                    this.on_row_expanded(field).done(callback);
+                    break;
+                }
+            }
+            if(item == fields.length) {
+                this.auto_select(parents.join('/'));
+                return;
+            }
+            function callback(self){
+                fields = field.next('ul').children('li');
+                self.traverse(fields, parents[i] + '/', parents, ++i);
+            }
         },
         response: function(response_id){
             if(response_id == 'RESPONSE_OK'){
