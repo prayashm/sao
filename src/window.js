@@ -720,7 +720,7 @@
     });
 
     Sao.Window.Import = Sao.class_(Sao.Window.CSV, {
-        init: function(screen){
+        init: function(screen) {
             this.screen = screen;
             this.session = Sao.Session.current_session;
             this.fields = {};
@@ -763,9 +763,8 @@
             }).css('cursor', 'pointer')
             .appendTo(column_fields_all);
 
-            this.get_fields(this.screen.model_name).done(function(fields){
-                this.model_populate(fields);
-            }.bind(this));
+            this.get_fields(this.screen.model_name)
+                .done(this.model_populate.bind(this));
 
             var column_buttons = jQuery('<div/>', {
                 'class' : 'col-md-4'
@@ -776,8 +775,7 @@
                 'type' : 'button'
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-plus'
-            })).append(Sao.i18n.gettext(' Add'))
-            .click(function(){
+            })).click(function(){
                 // sig_sel
                 // _sig_sel_add
                 this.fields_all.find('.bg-primary').each(function(i, el_field){
@@ -789,28 +787,29 @@
                         node.toggleClass('bg-primary');
                     }).appendTo(this.fields_selected);
                 }.bind(this));  
-            }.bind(this)).appendTo(column_buttons);
+            }.bind(this)).append(Sao.i18n.gettext(' Add'))
+            .appendTo(column_buttons);
 
             jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
                 'type' : 'button'
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-minus'
-            })).append(Sao.i18n.gettext(' Remove'))
-            .click(function(){
+            })).click(function(){
                 // sig_unsel
                 this.fields_selected.children('li.bg-primary').remove();
-            }.bind(this)).appendTo(column_buttons);
+            }.bind(this)).append(Sao.i18n.gettext(' Remove'))
+            .appendTo(column_buttons);
 
             jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
                 'type' : 'button'
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-remove'
-            })).append(Sao.i18n.gettext(' Clear'))
-            .click(function(){
+            })).click(function(){
                 this.sig_unsel_all();
-            }.bind(this)).appendTo(column_buttons);
+            }.bind(this)).append(Sao.i18n.gettext(' Clear'))
+            .appendTo(column_buttons);
 
             jQuery('<hr>').appendTo(column_buttons);
 
@@ -819,14 +818,14 @@
                 'type' : 'button'
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-search'
-            })).append(Sao.i18n.gettext(' Auto-Detect'))
-            .click(function(){
+            })).click(function(){
                 this.auto_detect();
-            }.bind(this)).appendTo(column_buttons);
+            }.bind(this)).append(Sao.i18n.gettext(' Auto-Detect'))
+            .appendTo(column_buttons);
 
             var column_fields_selected = jQuery('<div/>', {
                 'class' : 'col-md-4 column_fields'
-            }).append(jQuery('<label/>',{
+            }).append(jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('Fields Selected')
             })).appendTo(row_fields);
 
@@ -852,7 +851,7 @@
                 'id' : 'input-csv-file'
             });
 
-            var div_chooser = jQuery('<div>', {
+            jQuery('<div>', {
                 'class' : 'form-group'
             }).append(chooser_label).append(jQuery('<div/>', {
                 'class' : 'col-sm-8'
@@ -974,6 +973,7 @@
         },
         model_populate: function (fields, parent_node, prefix_field, 
             prefix_name){
+            // parent_node = parent_node || this.field_all;
             if (parent_node === undefined) parent_node = this.fields_all;
             if (prefix_field === undefined) prefix_field = '';
             if (prefix_name === undefined) prefix_name = '';
