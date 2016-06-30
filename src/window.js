@@ -1058,6 +1058,7 @@
                 config: {
                     delimiter: this.el_csv_delimiter.val(),
                     // quoteChar: this.el_csv_quotechar.val(),
+                    preview: 1,
                     encoding: this.el_csv_encoding.val()
                 },
                 error: function(err, file, inputElem, reason){
