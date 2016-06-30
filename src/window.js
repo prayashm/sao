@@ -728,7 +728,7 @@
             this.fields_invert = {};
 
             var dialog = new Sao.Dialog(
-                    Sao.i18n.gettext('Import from CSV'), '', 'lg');
+                    Sao.i18n.gettext('Import from CSV'), 'csv_dialog', 'lg');
             this.el = dialog.modal;
 
             jQuery('<button/>', {
