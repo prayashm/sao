@@ -794,7 +794,7 @@
                         }
                     }
                     this.set_default(values);
-                    jQuery.when.apply(promises).then(function() {
+                    jQuery.when.apply(jQuery, promises).then(function() {
                         dfd.resolve(values);
                     });
                 }.bind(this));
@@ -835,7 +835,7 @@
                 this._loaded[fname] = true;
                 fieldnames.push(fname);
             }
-            return jQuery.when.apply(promises).then(function() {
+            return jQuery.when.apply(jQuery, promises).then(function() {
                 return this.on_change(fieldnames).then(function() {
                     return this.on_change_with(fieldnames).then(function() {
                         var callback = function() {
@@ -1024,7 +1024,7 @@
                 }
                 promises.push(this.do_autocomplete(fname));
             }
-            return jQuery.when.apply(promises);
+            return jQuery.when.apply(jQuery, promises);
         },
         do_autocomplete: function(fieldname) {
             this.autocompletion[fieldname] = [];
@@ -1137,7 +1137,7 @@
         },
         root_parent: function root_parent() {
             var parent = this;
-            while (!parent.group.parent) {
+            while (parent.group.parent) {
                 parent = parent.group.parent;
             }
             return parent;
@@ -1727,7 +1727,13 @@
                 Sao.rpc({
                     'method': 'model.' + model_name + '.read',
                     'params': [[value], ['rec_name'], record.get_context()]
-                }, record.model.session).done(store_rec_name.bind(this));
+                }, record.model.session).done(store_rec_name.bind(this)).done(
+                        function() {
+                            record.group.root_group().screens.forEach(
+                                function(screen) {
+                                    screen.display();
+                            });
+                       });
             } else {
                 store_rec_name.call(this, [{'rec_name': rec_name}]);
             }
@@ -1838,7 +1844,7 @@
                         }
                     });
                 }
-                return jQuery.when.apply(promises);
+                return jQuery.when.apply(jQuery, promises);
             };
             return prm.then(set_value);
         },
