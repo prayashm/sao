@@ -917,7 +917,8 @@
                 'id' : 'input-quotechar',
                 'size' : '1',
                 'maxlength' : '1',
-                'value' : '\"'
+                'value' : '\"',
+                'readonly': ''
             });            
 
             var div_quotechar = jQuery('<div/>', {
@@ -1057,7 +1058,7 @@
             Papa.parse(this.file_input[0].files[0], {
                 config: {
                     delimiter: this.el_csv_delimiter.val(),
-                    // quoteChar: this.el_csv_quotechar.val(),
+                    // TODO quoteChar: this.el_csv_quotechar.val(),
                     preview: 1,
                     encoding: this.el_csv_encoding.val()
                 },
@@ -1148,7 +1149,7 @@
             Papa.parse(this.file_input[0].files[0], {
                 config: {
                     delimiter: this.el_csv_delimiter.val(),
-                    // quoteChar: this.el_csv_quotechar.val(),
+                    // TODO quoteChar: this.el_csv_quotechar.val(),
                     encoding: encoding
                 },
                 error: function(err, file, inputElem, reason){
