@@ -780,13 +780,12 @@
             .click(function(){
                 // sig_sel
                 // _sig_sel_add
-                // TODO: Make them draggable to re-order
                 this.fields_all.find('.bg-primary').each(function(i, el_field){
                     el_field = jQuery(el_field);
                     var field = el_field.attr('field');
                     var node = jQuery('<li/>', {
                         'field' : field,
-                    }).html(this.fields[field]).click(function(){
+                    }).html(this.fields[field][0]).click(function(){
                         node.toggleClass('bg-primary');
                     }).appendTo(this.fields_selected);
                 }.bind(this));  
@@ -831,6 +830,7 @@
                 'text' : Sao.i18n.gettext('Fields Selected')
             })).appendTo(row_fields);
 
+            // TODO: Make them draggable to re-order
             this.fields_selected = jQuery('<ul/>', {
                 'class' : 'list-unstyled'
             }).css('cursor', 'pointer').appendTo(column_fields_selected);
