@@ -781,13 +781,13 @@
                 // sig_sel
                 // _sig_sel_add
                 // TODO: Make them draggable to re-order
-                this.fields_all.find('.selected').each(function(i, el_field){
+                this.fields_all.find('.bg-primary').each(function(i, el_field){
                     el_field = jQuery(el_field);
                     var field = el_field.attr('field');
                     var node = jQuery('<li/>', {
                         'field' : field,
                     }).html(this.fields[field]).click(function(){
-                        node.toggleClass('selected');
+                        node.toggleClass('bg-primary');
                     }).appendTo(this.fields_selected);
                 }.bind(this));  
             }.bind(this)).appendTo(column_buttons);
@@ -800,7 +800,7 @@
             })).append(Sao.i18n.gettext(' Remove'))
             .click(function(){
                 // sig_unsel
-                this.fields_selected.children('li.selected').remove();
+                this.fields_selected.children('li.bg-primary').remove();
             }.bind(this)).appendTo(column_buttons);
 
             jQuery('<button/>', {
@@ -841,22 +841,22 @@
 
             jQuery('<hr>').appendTo(dialog.body);
             
-            var label_chooser = jQuery('<label/>', {
+            var chooser_label = jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('File to Import'),
                 'class' : 'col-sm-4 control-label',
                 'for' : 'input-csv-file'
             });
 
-            this.el_file_input = jQuery('<input/>', {
+            this.file_input = jQuery('<input/>', {
                 'type' : 'file',
                 'id' : 'input-csv-file'
             });
 
             var div_chooser = jQuery('<div>', {
                 'class' : 'form-group'
-            }).append(label_chooser).append(jQuery('<div/>', {
+            }).append(chooser_label).append(jQuery('<div/>', {
                 'class' : 'col-sm-8'
-            }).append(this.el_file_input))
+            }).append(this.file_input))
             .appendTo(form_inline);
 
             var row_csv_param = jQuery('<div/>', {
@@ -884,7 +884,7 @@
                 expander_csv.collapse('toggle');
             });
 
-            var label_delimiter = jQuery('<label/>', {
+            var delimiter_label = jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('Delimiter:'),
                 'class' : 'col-sm-2 control-label',
                 'for' : 'input-delimiter'
@@ -901,12 +901,11 @@
 
             var div_delimiter = jQuery('<div/>', {
                 'class' : 'form-group'
-            }).append(label_delimiter).append(jQuery('<div/>', {
+            }).append(delimiter_label).append(jQuery('<div/>', {
                 'class' : 'col-sm-4'
-            }).append(this.el_csv_delimiter))
-            .appendTo(expander_csv);
+            }).append(this.el_csv_delimiter)).appendTo(expander_csv);
 
-            var label_quotechar = jQuery('<label/>', {
+            var quotechar_label = jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('Quote Char:'),
                 'class' : 'col-sm-2 control-label',
                 'for' : 'input-quotechar'
@@ -923,12 +922,12 @@
 
             var div_quotechar = jQuery('<div/>', {
                 'class' : 'form-group'
-            }).append(label_quotechar).append(jQuery('<div/>', {
+            }).append(quotechar_label).append(jQuery('<div/>', {
                 'class' : 'col-sm-4'
             }).append(this.el_csv_quotechar))
             .appendTo(expander_csv);
 
-            var label_encoding = jQuery('<label/>', {
+            var encoding_label = jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('Encoding:'),
                 'class' : 'col-sm-2 control-label',
                 'for' : 'input-encoding'
@@ -945,12 +944,12 @@
 
             var div_encoding = jQuery('<div/>', {
                 'class' : 'form-group'
-            }).append(label_encoding).append(jQuery('<div/>', {
+            }).append(encoding_label).append(jQuery('<div/>', {
                 'class' : 'col-sm-4'
             }).append(this.el_csv_encoding))
             .appendTo(expander_csv);
 
-            var label_skip = jQuery('<label/>', {
+            var skip_label = jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('Lines to Skip:'),
                 'class' : 'col-sm-2 control-label',
                 'for' : 'input-skip'
@@ -965,7 +964,7 @@
 
             var div_skip = jQuery('<div/>', {
                 'class' : 'form-group'
-            }).append(label_skip).append(jQuery('<div/>', {
+            }).append(skip_label).append(jQuery('<div/>', {
                 'class' : 'col-sm-4'
             }).append(this.el_csv_skip))
             .appendTo(expander_csv);
@@ -974,11 +973,11 @@
         },
         model_populate: function (fields, parent_node, prefix_field, 
             prefix_name){
-            if(parent_node === undefined) parent_node = this.fields_all;
-            if(prefix_field === undefined) prefix_field = '';
-            if(prefix_name === undefined) prefix_name = '';
+            if (parent_node === undefined) parent_node = this.fields_all;
+            if (prefix_field === undefined) prefix_field = '';
+            if (prefix_name === undefined) prefix_name = '';
 
-            var fields_order = Object.keys(fields).sort(function(a,b){
+            var fields_order = Object.keys(fields).sort(function(a,b) {
                 return fields[b].string > fields[a].string;
             }).reverse();
 
@@ -989,7 +988,7 @@
                     var node = jQuery('<li/>', {
                         'field' : prefix_field + field
                     }).html(name).click(function(){
-                        node.toggleClass('selected');
+                        node.toggleClass('bg-primary');
                     }).appendTo(parent_node);
                     name = prefix_name + name;
                     // Only One2Many can be nested for import
@@ -1028,29 +1027,26 @@
             return prm;
         },
         on_row_expanded: function(node){
-            // # autodetect could call for node without children
-            // if child is None:
-            //     return
+            var dfd = jQuery.Deferred();
             if (node.next()[0].localName != 'ul'){
                 var prefix_field = node.attr('field');
                 var name = this.fields[prefix_field][0];
                 var model = this.fields[prefix_field][1];
                 var container_node = jQuery('<ul/>').css('list-style', 'none')
                                         .insertAfter(node);
-                var dfd = $.Deferred();
                 this.get_fields(model).done(function(fields){
                     this.model_populate(fields, container_node,
                         prefix_field+'/', name+'/');
                     dfd.resolve(this);
                 }.bind(this));
-                return dfd.promise();
             }
+            return dfd.promise();
         },
         sig_unsel_all: function(){
             this.fields_selected.empty();
         },
         auto_detect: function(){
-            var fname = this.el_file_input.val();
+            var fname = this.file_input.val();
             if(!fname){
                 Sao.common.message.run(
                     Sao.i18n.gettext('You must select an import file first'));
@@ -1058,7 +1054,7 @@
             }
             this.sig_unsel_all();
             this.el_csv_skip.val(1);
-            Papa.parse(this.el_file_input[0].files[0], {
+            Papa.parse(this.file_input[0].files[0], {
                 config: {
                     delimiter: this.el_csv_delimiter.val(),
                     // quoteChar: this.el_csv_quotechar.val(),
@@ -1101,7 +1097,7 @@
             var node = jQuery('<li/>', {
                 'field': field
             }).html(name).click(function(){
-                node.toggleClass('selected');
+                node.toggleClass('bg-primary');
             }).appendTo(this.fields_selected);
         },
         traverse: function(fields, prefix, parents, i){
@@ -1136,7 +1132,7 @@
                     fields.push(field_el.getAttribute('field'));
                 });
                 this.el.modal('hide');
-                var fname = this.el_file_input.val();
+                var fname = this.file_input.val();
                 if(fname){
                     this.import_csv(fname, fields);
                 }
@@ -1148,7 +1144,7 @@
             var skip = this.el_csv_skip.val();
             var encoding = this.el_csv_encoding.val();
 
-            Papa.parse(this.el_file_input[0].files[0], {
+            Papa.parse(this.file_input[0].files[0], {
                 config: {
                     delimiter: this.el_csv_delimiter.val(),
                     // quoteChar: this.el_csv_quotechar.val(),
@@ -1175,15 +1171,16 @@
                         data.push(arr);
                     });
                     Sao.rpc({
-                        'method' : 'model.' + this.screen.model_name + '.import_data',
+                        'method' : 'model.' + this.screen.model_name + 
+                        '.import_data',
                         'params' : [fields, data, {}] 
                     }, this.session).done(function(count){
                         if (count == 1){
                             Sao.common.message.run(
-                                Sao.i18n.gettext(count+' record imported'));
+                                Sao.i18n.gettext('%1 record imported', count));
                         } else {
                             Sao.common.message.run(
-                                Sao.i18n.gettext(count+' records imported'));
+                                Sao.i18n.gettext('%1 records imported', count));
                         }
                     });
                 }.bind(this)

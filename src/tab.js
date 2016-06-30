@@ -805,7 +805,7 @@
             }.bind(this));
         },
         export: function(){
-            this.info_bar.message(Sao.i18n.gettext("Export"));
+            // TODO csv_export
         },
         import: function(){
             new Sao.Window.Import(this.screen);
