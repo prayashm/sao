@@ -959,7 +959,7 @@
                 'type' : 'number',
                 'class' : 'form-control',
                 'id' : 'input-skip',
-                'value' : '1'
+                'value' : '0'
             });            
 
             var div_skip = jQuery('<div/>', {
