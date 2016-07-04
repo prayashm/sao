@@ -716,7 +716,30 @@
     });
 
     Sao.Window.CSV = Sao.class_(Object, {
+        init: function(){
+            // Not in Javascript FileReader#readAsText:
+            // ["cp037", "cp424", "cp437", "cp500", "cp720", "cp737", 
+            // "cp775", "cp850", "cp852", "cp855", "cp856", "cp857", "cp858",
+            // "cp860", "cp861", "cp862", "cp863", "cp864", "cp865", "cp869", 
+            // "cp874", "cp875",  "cp932", "cp949", "cp950", "cp1006", "cp1026",
+            // "cp1140", "euc_jis_2004", "euc_jisx0213", "hz", "iso2022_jp_1",
+            // "iso2022_jp_2", "iso2022_jp_2004", "iso2022_jp_3", "iso2022_jp_ext"
+            // "iso8859_16", "johab", "mac_greek", "mac_iceland", "mac_latin2",
+            // "mac_turkish", "ptcp154", "shift_jis_2004", "shift_jisx0213",
+            // "utf_32", "utf_32_be", "utf_32_le", "utf_7","utf_8_sig"];
 
+            // "mac_cyrillic" <== "x-mac-cyrillic"
+            // "mac_roman" <== "x-mac-roman"
+
+            this.encodings = ["ascii", "big5", "big5-hkscs", "cp866", "cp1250",
+            "cp1251", "cp1252", "cp1253", "cp1254", "cp1255", "cp1256", 
+            "cp1257", "cp1258", "euc-jp", "euc-kr", "gb2312", "gbk", "gb18030",
+            "iso2022-jp", "iso2022-kr", "latin1", "iso8859-2", "iso8859-3",
+            "iso8859-4", "iso8859-5", "iso8859-6", "iso8859-7", "iso8859-8",
+            "iso8859-9", "iso8859-10", "iso8859-13", "iso8859-14", "iso8859-15",
+            "koi8_r", "koi8-u", "shift_jis", "utf-16", "utf-16be", "utf-16le",
+            "utf-8"];
+        }
     });
 
     Sao.Window.Import = Sao.class_(Sao.Window.CSV, {
@@ -727,8 +750,10 @@
             this.fields_data = {};
             this.fields_invert = {};
 
+            Sao.Window.Import._super.init.call(this);
+
             var dialog = new Sao.Dialog(
-                    Sao.i18n.gettext('Import from CSV'), 'csv_dialog', 'lg');
+                    Sao.i18n.gettext('Import from CSV'), 'csv', 'lg');
             this.el = dialog.modal;
 
             jQuery('<button/>', {
@@ -936,11 +961,17 @@
             this.el_csv_encoding = jQuery('<select/>', {
                 'class' : 'form-control',
                 'id' : 'input-encoding',
-                'value' : 'utf_8'
-            }).append(jQuery('<option>',{
-                'selected' : '',
-                'val' : 'utf_8'
-            }).html('utf_8'));            
+                'val' : 'utf-8'
+            });
+
+            for(var i=0; i<this.encodings.length; i++){
+                jQuery('<option/>',{
+                    'val' : this.encodings[i]
+                }).html(this.encodings[i]).appendTo(this.el_csv_encoding);
+            }
+
+            this.el_csv_encoding.children('option[value="utf-8"]')
+            .attr('selected', 'selected');
 
             var div_encoding = jQuery('<div/>', {
                 'class' : 'form-group'
