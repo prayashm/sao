@@ -814,7 +814,9 @@
             .appendTo(column_fields_all);
 
             this.get_fields(this.screen.model_name)
-                .done(this.model_populate.bind(this));
+                .done(function(fields){
+                    this.model_populate(fields);
+                }.bind(this));
 
             var column_buttons = jQuery('<div/>', {
                 'class' : 'col-md-4'
@@ -1034,10 +1036,9 @@
         },
         model_populate: function (fields, parent_node, prefix_field, 
             prefix_name){
-            // parent_node = parent_node || this.field_all;
-            if (parent_node === undefined) parent_node = this.fields_all;
-            if (prefix_field === undefined) prefix_field = '';
-            if (prefix_name === undefined) prefix_name = '';
+            parent_node = parent_node || this.fields_all;
+            prefix_field = prefix_field || '';
+            prefix_name = prefix_name || '';
 
             var fields_order = Object.keys(fields).sort(function(a,b) {
                 return fields[b].string > fields[a].string;
