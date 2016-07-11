@@ -717,7 +717,7 @@
     });
 
     Sao.Window.CSV = Sao.class_(Object, {
-        init: function(){
+        init: function() {
             this.encodings = ["866", "ansi_x3.4-1968", "arabic", "ascii",
             "asmo-708", "big5", "big5-hkscs", "chinese", "cn-big5", "cp1250",
             "cp1251", "cp1252", "cp1253", "cp1254", "cp1255", "cp1256",
@@ -764,29 +764,15 @@
             "x-cp1255", "x-cp1256", "x-cp1257", "x-cp1258", "x-euc-jp", "x-gbk",
             "x-mac-cyrillic", "x-mac-roman", "x-mac-ukrainian", "x-sjis",
             "x-user-defined", "x-x-big5"];
-        }
-    });
-
-    Sao.Window.Import = Sao.class_(Sao.Window.CSV, {
-        init: function(screen) {
-            this.screen = screen;
-            this.session = Sao.Session.current_session;
-            this.fields = {};
-            this.fields_data = {};
-            this.fields_invert = {};
-
-            Sao.Window.Import._super.init.call(this);
-
-            var dialog = new Sao.Dialog(
-                    Sao.i18n.gettext('Import from CSV'), 'csv', 'lg');
-            this.el = dialog.modal;
+            this.dialog = new Sao.Dialog('', 'csv', 'lg');
+            this.el = this.dialog.modal;
 
             jQuery('<button/>', {
                 'class': 'btn btn-link',
                 'type': 'button'
             }).append(Sao.i18n.gettext('Cancel')).click(function(){
                 this.response('RESPONSE_CANCEL');
-            }.bind(this)).appendTo(dialog.footer);
+            }.bind(this)).appendTo(this.dialog.footer);
 
             jQuery('<button/>', {
                 'class': 'btn btn-primary',
@@ -794,17 +780,18 @@
             }).append(Sao.i18n.gettext('OK')).click(function(e){
                 this.response('RESPONSE_OK');
                 e.preventDefault();
-            }.bind(this)).appendTo(dialog.footer);
+            }.bind(this)).appendTo(this.dialog.footer);
 
             var row_fields = jQuery('<div/>', {
                 'class': 'row'
-            }).appendTo(dialog.body);
+            }).appendTo(this.dialog.body);
 
-            jQuery('<hr>').appendTo(dialog.body);
+            jQuery('<hr>').appendTo(this.dialog.body);
 
             var column_fields_all = jQuery('<div/>', {
-                'class' : 'col-md-4 column_fields'
-            }).append(jQuery('<label/>',{
+                'class' : 'col-md-4',
+                'height' : '300px'
+            }).css('overflow-y', 'scroll').append(jQuery('<label/>',{
                 'text' : Sao.i18n.gettext('All Fields')
             })).appendTo(row_fields);
 
@@ -818,7 +805,7 @@
                     this.model_populate(fields);
                 }.bind(this));
 
-            var column_buttons = jQuery('<div/>', {
+            this.column_buttons = jQuery('<div/>', {
                 'class' : 'col-md-4'
             }).append('<label/>').appendTo(row_fields);
 
@@ -828,19 +815,11 @@
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-plus'
             })).click(function(){
-                // sig_sel
-                // _sig_sel_add
                 this.fields_all.find('.bg-primary').each(function(i, el_field){
-                    el_field = jQuery(el_field);
-                    var field = el_field.attr('field');
-                    var node = jQuery('<li/>', {
-                        'field' : field,
-                    }).html(this.fields[field][0]).click(function(){
-                        node.toggleClass('bg-primary');
-                    }).appendTo(this.fields_selected);
-                }.bind(this));  
+                    this.sig_sel_add(el_field);
+                }.bind(this));
             }.bind(this)).append(Sao.i18n.gettext(' Add'))
-            .appendTo(column_buttons);
+            .appendTo(this.column_buttons);
 
             jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
@@ -851,7 +830,7 @@
                 // sig_unsel
                 this.fields_selected.children('li.bg-primary').remove();
             }.bind(this)).append(Sao.i18n.gettext(' Remove'))
-            .appendTo(column_buttons);
+            .appendTo(this.column_buttons);
 
             jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
@@ -861,22 +840,12 @@
             })).click(function(){
                 this.sig_unsel_all();
             }.bind(this)).append(Sao.i18n.gettext(' Clear'))
-            .appendTo(column_buttons);
+            .appendTo(this.column_buttons);
 
-            jQuery('<hr>').appendTo(column_buttons);
-
-            jQuery('<button/>', {
-                'class' : 'btn btn-default btn-block',
-                'type' : 'button'
-            }).append(jQuery('<i/>', {
-                    'class': 'glyphicon glyphicon-search'
-            })).click(function(){
-                this.auto_detect();
-            }.bind(this)).append(Sao.i18n.gettext(' Auto-Detect'))
-            .appendTo(column_buttons);
+            jQuery('<hr>').appendTo(this.column_buttons);
 
             var column_fields_selected = jQuery('<div/>', {
-                'class' : 'col-md-4 column_fields'
+                'class' : 'col-md-4'
             }).append(jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('Fields Selected')
             })).appendTo(row_fields);
@@ -886,33 +855,15 @@
                 'class' : 'list-unstyled'
             }).css('cursor', 'pointer').appendTo(column_fields_selected);
 
-            var form_inline = jQuery('<div/>', {
+            this.chooser_form = jQuery('<div/>', {
                 'class' : 'form-inline'
-            }).appendTo(dialog.body);
+            }).appendTo(this.dialog.body);
 
-            jQuery('<hr>').appendTo(dialog.body);
-            
-            var chooser_label = jQuery('<label/>', {
-                'text' : Sao.i18n.gettext('File to Import'),
-                'class' : 'col-sm-4 control-label',
-                'for' : 'input-csv-file'
-            });
-
-            this.file_input = jQuery('<input/>', {
-                'type' : 'file',
-                'id' : 'input-csv-file'
-            });
-
-            jQuery('<div>', {
-                'class' : 'form-group'
-            }).append(chooser_label).append(jQuery('<div/>', {
-                'class' : 'col-sm-8'
-            }).append(this.file_input))
-            .appendTo(form_inline);
+            jQuery('<hr>').appendTo(this.dialog.body);
 
             var row_csv_param = jQuery('<div/>', {
                 'class' : 'row'
-            }).appendTo(dialog.body);
+            }).appendTo(this.dialog.body);
 
             var expander_icon = jQuery('<span/>', {
                 'class' : 'glyphicon glyphicon-plus'
@@ -924,7 +875,7 @@
                 'text' : Sao.i18n.gettext('CSV Parameters')
             })).appendTo(row_csv_param);
 
-            var expander_csv  = jQuery('<div/>', {
+            this.expander_csv  = jQuery('<div/>', {
                 'id' : 'expander_csv',
                 'class' : 'collapse'
             }).appendTo(row_csv_param);
@@ -932,8 +883,8 @@
             div_label_csv_param.on('click', function(){
                 expander_icon.toggleClass('glyphicon-plus')
                 .toggleClass('glyphicon-minus');
-                expander_csv.collapse('toggle');
-            });
+                this.expander_csv.collapse('toggle');
+            }.bind(this));
 
             var delimiter_label = jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('Delimiter:'),
@@ -950,11 +901,11 @@
                 'value' : ','
             });
 
-            var div_delimiter = jQuery('<div/>', {
+            jQuery('<div/>', {
                 'class' : 'form-group'
             }).append(delimiter_label).append(jQuery('<div/>', {
                 'class' : 'col-sm-4'
-            }).append(this.el_csv_delimiter)).appendTo(expander_csv);
+            }).append(this.el_csv_delimiter)).appendTo(this.expander_csv);
 
             var quotechar_label = jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('Quote Char:'),
@@ -970,14 +921,14 @@
                 'maxlength' : '1',
                 'value' : '\"',
                 'readonly': ''
-            });            
+            });
 
-            var div_quotechar = jQuery('<div/>', {
+            jQuery('<div/>', {
                 'class' : 'form-group'
             }).append(quotechar_label).append(jQuery('<div/>', {
                 'class' : 'col-sm-4'
             }).append(this.el_csv_quotechar))
-            .appendTo(expander_csv);
+            .appendTo(this.expander_csv);
 
             var encoding_label = jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('Encoding:'),
@@ -987,8 +938,7 @@
 
             this.el_csv_encoding = jQuery('<select/>', {
                 'class' : 'form-control',
-                'id' : 'input-encoding',
-                'val' : 'utf-8'
+                'id' : 'input-encoding'
             });
 
             for(var i=0; i<this.encodings.length; i++){
@@ -1005,12 +955,64 @@
             this.el_csv_encoding.children('option[value="'+enc+'"]')
             .attr('selected', 'selected');
 
-            var div_encoding = jQuery('<div/>', {
+            jQuery('<div/>', {
                 'class' : 'form-group'
             }).append(encoding_label).append(jQuery('<div/>', {
                 'class' : 'col-sm-4'
             }).append(this.el_csv_encoding))
-            .appendTo(expander_csv);
+            .appendTo(this.expander_csv);
+
+            this.el.modal('show');
+        },
+        get_fields: function(model) {
+            var prm = jQuery.when();
+            prm = Sao.rpc({
+                'method' : 'model.' + model + '.fields_get'
+            }, this.session);
+            return prm;
+        },
+        sig_unsel_all: function() {
+            this.fields_selected.empty();
+        }
+    });
+
+    Sao.Window.Import = Sao.class_(Sao.Window.CSV, {
+        init: function(screen) {
+            this.screen = screen;
+            this.session = Sao.Session.current_session;
+            this.fields = {};
+            this.fields_data = {};
+            this.fields_invert = {};
+            Sao.Window.Import._super.init.call(this);
+            this.dialog.add_title(Sao.i18n.gettext('Import from CSV'));
+
+            jQuery('<button/>', {
+                'class' : 'btn btn-default btn-block',
+                'type' : 'button'
+            }).append(jQuery('<i/>', {
+                    'class': 'glyphicon glyphicon-search'
+            })).click(function(){
+                this.auto_detect();
+            }.bind(this)).append(Sao.i18n.gettext(' Auto-Detect'))
+            .appendTo(this.column_buttons);
+
+            var chooser_label = jQuery('<label/>', {
+                'text' : Sao.i18n.gettext('File to Import'),
+                'class' : 'col-sm-4 control-label',
+                'for' : 'input-csv-file'
+            });
+
+            this.file_input = jQuery('<input/>', {
+                'type' : 'file',
+                'id' : 'input-csv-file'
+            });
+
+            jQuery('<div>', {
+                'class' : 'form-group'
+            }).append(chooser_label).append(jQuery('<div/>', {
+                'class' : 'col-sm-8'
+            }).append(this.file_input))
+            .appendTo(this.chooser_form);
 
             var skip_label = jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('Lines to Skip:'),
@@ -1023,25 +1025,33 @@
                 'class' : 'form-control',
                 'id' : 'input-skip',
                 'value' : '0'
-            });            
+            });
 
-            var div_skip = jQuery('<div/>', {
+            jQuery('<div/>', {
                 'class' : 'form-group'
             }).append(skip_label).append(jQuery('<div/>', {
                 'class' : 'col-sm-4'
             }).append(this.el_csv_skip))
-            .appendTo(expander_csv);
-
-            this.el.modal('show');
+            .appendTo(this.expander_csv);
         },
-        model_populate: function (fields, parent_node, prefix_field, 
-            prefix_name){
+        sig_sel_add: function(el_field) {
+            el_field = jQuery(el_field);
+            var field = el_field.attr('field');
+            var node = jQuery('<li/>', {
+                'field' : field,
+            }).html(this.fields[field][0]).click(function(){
+                node.toggleClass('bg-primary');
+            }).appendTo(this.fields_selected);
+        },
+        model_populate: function (fields, parent_node, prefix_field,
+            prefix_name) {
             parent_node = parent_node || this.fields_all;
             prefix_field = prefix_field || '';
             prefix_name = prefix_name || '';
 
             var fields_order = Object.keys(fields).sort(function(a,b) {
-                return fields[b].string > fields[a].string;
+                if (fields[b].string < fields[a].string) return -1;
+                else return 1;
             }).reverse();
 
             fields_order.forEach(function(field){
@@ -1071,7 +1081,7 @@
                             e.stopPropagation();
                             expander_icon.toggleClass('glyphicon-plus')
                             .toggleClass('glyphicon-minus');
-                            if(expander_icon[0].classList[1] == 
+                            if(expander_icon[0].classList[1] ==
                                 'glyphicon-minus'){
                                 this.on_row_expanded(node);
                             } else {
@@ -1082,33 +1092,21 @@
                 }
             }.bind(this));
         },
-        get_fields: function(model){
-            var prm = jQuery.when();
-            prm = Sao.rpc({
-                'method' : 'model.' + model + '.fields_get'
-            }, this.session);
-            return prm;
-        },
-        on_row_expanded: function(node){
+        on_row_expanded: function(node) {
             var dfd = jQuery.Deferred();
-            if (node.next()[0].localName != 'ul'){
-                var prefix_field = node.attr('field');
-                var name = this.fields[prefix_field][0];
-                var model = this.fields[prefix_field][1];
-                var container_node = jQuery('<ul/>').css('list-style', 'none')
-                                        .insertAfter(node);
-                this.get_fields(model).done(function(fields){
-                    this.model_populate(fields, container_node,
-                        prefix_field+'/', name+'/');
-                    dfd.resolve(this);
-                }.bind(this));
-            }
+            var prefix_field = node.attr('field');
+            var name = this.fields[prefix_field][0];
+            var model = this.fields[prefix_field][1];
+            var container_node = jQuery('<ul/>').css('list-style', 'none')
+                                    .insertAfter(node);
+            this.get_fields(model).done(function(fields){
+                this.model_populate(fields, container_node,
+                    prefix_field+'/', name+'/');
+                dfd.resolve(this);
+            }.bind(this));
             return dfd.promise();
         },
-        sig_unsel_all: function(){
-            this.fields_selected.empty();
-        },
-        auto_detect: function(){
+        auto_detect: function() {
             var fname = this.file_input.val();
             if(!fname){
                 Sao.common.message.run(
@@ -1142,7 +1140,7 @@
                 }.bind(this)
             });
         },
-        auto_select: function(word){
+        auto_select: function(word) {
             var name,field;
             if(word in this.fields_invert){
                 name = word;
@@ -1164,7 +1162,7 @@
                 node.toggleClass('bg-primary');
             }).appendTo(this.fields_selected);
         },
-        traverse: function(fields, prefix, parents, i){
+        traverse: function(fields, prefix, parents, i) {
             if(i >= parents.length-1) {
                 this.auto_select(parents.join('/'));
                 return;
@@ -1172,7 +1170,7 @@
             var field, item;
             for(item = 0; item<fields.length; item++){
                 field = jQuery(fields[item]);
-                if(field.text().trim() == parents[i] || 
+                if(field.text().trim() == parents[i] ||
                 field.attr('field') == (prefix+parents[i])){
                     field.children('i')
                         .toggleClass('glyphicon-plus glyphicon-minus');
@@ -1189,7 +1187,7 @@
                 self.traverse(fields, parents[i] + '/', parents, ++i);
             }
         },
-        response: function(response_id){
+        response: function(response_id) {
             if(response_id == 'RESPONSE_OK'){
                 var fields = [];
                 this.fields_selected.children('li').each(function(i, field_el){
@@ -1204,7 +1202,7 @@
                 this.el.modal('hide');
             }
         },
-        import_csv: function(fname, fields){
+        import_csv: function(fname, fields) {
             var skip = this.el_csv_skip.val();
             var encoding = this.el_csv_encoding.val();
 
@@ -1235,9 +1233,9 @@
                         data.push(arr);
                     });
                     Sao.rpc({
-                        'method' : 'model.' + this.screen.model_name + 
+                        'method' : 'model.' + this.screen.model_name +
                         '.import_data',
-                        'params' : [fields, data, {}] 
+                        'params' : [fields, data, {}]
                     }, this.session).done(function(count){
                         if (count == 1){
                             Sao.common.message.run(
@@ -1249,6 +1247,173 @@
                     });
                 }.bind(this)
             });
+        }
+    });
+
+    Sao.Window.Export = Sao.class_(Sao.Window.CSV, {
+        init: function(screen) {
+            this.screen = screen;
+            this.session = Sao.Session.current_session;
+            this.fields = {};
+            Sao.Window.Export._super.init.call(this);
+            this.dialog.add_title(Sao.i18n.gettext('Export to CSV'));
+
+            var row_header = jQuery('<div/>', {
+                'class' : 'row'
+            }).prependTo(this.dialog.body);
+
+            var predefined_exports_column = jQuery('<div/>', {
+                'class' : 'col-md-12'
+            }).append(jQuery('<label/>',{
+                'text' : Sao.i18n.gettext('Predefined Exports')
+            })).appendTo(row_header);
+
+            predefined_exports_column.append(jQuery('<div/>', {
+                'class' : 'well',
+                'height' : '5%'
+            }));
+
+            jQuery('<button/>', {
+                'class' : 'btn btn-default btn-block',
+                'type' : 'button'
+            }).append(jQuery('<i/>', {
+                    'class': 'glyphicon glyphicon-floppy-save'
+            })).click(function(){
+                // TODO
+            }.bind(this)).append(Sao.i18n.gettext(' Save Export'))
+            .appendTo(this.column_buttons);
+
+            jQuery('<button/>', {
+                'class' : 'btn btn-default btn-block',
+                'type' : 'button'
+            }).append(jQuery('<i/>', {
+                    'class': 'glyphicon glyphicon-floppy-remove'
+            })).click(function(){
+                // TODO
+            }.bind(this)).append(Sao.i18n.gettext(' Delete Export'))
+            .appendTo(this.column_buttons);
+
+            jQuery('<select/>', {
+                'class' : 'form-control',
+                'width' : '100%'
+            }).append(jQuery('<option/>', {
+                'val': 'open',
+                'text' : Sao.i18n.gettext('Open')
+            })).append(jQuery('<option/>', {
+                'val' : 'save',
+                'text' : Sao.i18n.gettext('Save')
+            })).appendTo(this.chooser_form);
+
+            var add_field_names_label =
+
+            this.el_add_field_names = jQuery('<input/>', {
+                'type' : 'checkbox',
+                'checked' : 'checked'
+            });
+
+            jQuery('<div/>', {
+                'class' : 'form-group'
+            }).append(jQuery('<div/>', {
+                'class' : 'col-md-6'
+            }).append(jQuery('<label/>', {
+                'text' : Sao.i18n.gettext(' Add Field Names')
+            }).prepend(this.el_add_field_names))).appendTo(this.expander_csv);
+        },
+        model_populate: function(fields, parent_node, prefix_field,
+            prefix_name) {
+            parent_node = parent_node || this.fields_all;
+            prefix_field = prefix_field || '';
+            prefix_name = prefix_name || '';
+
+            var names = Object.keys(fields).sort(function(a,b) {
+                if ((fields[b].string || b) < (fields[a].string || a))
+                    return -1;
+                else
+                    return 1;
+            }).reverse();
+
+            names.forEach(function(name) {
+                var field = fields[name];
+                var string = field.string || name;
+                var items = [{ name: name, field: field, string: string }];
+
+                if (field.type == 'selection') {
+                    items.push({
+                        name: name+'.translated',
+                        field: field,
+                        string: Sao.i18n.gettext('%1 (string)', string)
+                    });
+                }
+
+                items.forEach(function(item) {
+                    var path = prefix_field + item.name;
+                    var long_string = item.string;
+
+                    if (prefix_field)
+                        long_string = prefix_name + item.string;
+
+                    var node = jQuery('<li/>', {
+                        'path' : path
+                    }).html(item.string).click(function(){
+                        node.toggleClass('bg-primary');
+                    }).appendTo(parent_node);
+
+                    this.fields[path] = [item.string, long_string,
+                        item.field.relation];
+
+                    // Insert relation only to real field
+                    if (item.name.indexOf('.') == -1 && item.field.relation){
+                        node.prepend(' ');
+                        var expander_icon = jQuery('<i/>', {
+                            'class' : 'glyphicon glyphicon-plus'
+                        }).click(function(e){
+                            e.stopPropagation();
+                            expander_icon.toggleClass('glyphicon-plus')
+                            .toggleClass('glyphicon-minus');
+                            if(expander_icon[0].classList[1] ==
+                                'glyphicon-minus') {
+                                this.on_row_expanded(node);
+                            } else {
+                                node.next('ul').remove();
+                            }
+                        }.bind(this)).prependTo(node);
+                    }
+                }.bind(this));
+            }.bind(this));
+        },
+        on_row_expanded: function(node) {
+            if (node.next()[0].localName != 'ul'){
+                var prefix_field = node.attr('path');
+                var string = this.fields[prefix_field][0];
+                var long_string = this.fields[prefix_field][1];
+                var relation = this.fields[prefix_field][2];
+                var container_node = jQuery('<ul/>').css('list-style', 'none')
+                                        .insertAfter(node);
+                this.get_fields(relation).done(function(fields) {
+                    this.model_populate(fields, container_node,
+                        prefix_field+'/', name+'/');
+                }.bind(this));
+            }
+        },
+        sig_sel_add: function(el_field) {
+            el_field = jQuery(el_field);
+            var name = el_field.attr('path');
+            var string = this.fields[name][0];
+            var long_string = this.fields[name][1];
+            var relation = this.fields[name][2];
+            if (relation) return;
+            var node = jQuery('<li/>', {
+                'path' : name,
+            }).html(string).click(function(){
+                node.toggleClass('bg-primary');
+            }).appendTo(this.fields_selected);
+        },
+        response: function(response_id) {
+            if(response_id == 'RESPONSE_OK'){
+                // TODO
+            } else {
+                this.el.modal('hide');
+            }
         }
     });
 

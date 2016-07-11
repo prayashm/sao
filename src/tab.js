@@ -805,7 +805,9 @@
             }.bind(this));
         },
         export: function(){
-            // TODO csv_export
+            new Sao.Window.Export(this.screen);
+            // for name in self.screen.current_view.get_fields():
+            //     export.sel_field(name)
         },
         import: function(){
             new Sao.Window.Import(this.screen);
