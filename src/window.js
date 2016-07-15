@@ -965,11 +965,9 @@
             this.el.modal('show');
         },
         get_fields: function(model) {
-            var prm = jQuery.when();
-            prm = Sao.rpc({
+            return Sao.rpc({
                 'method' : 'model.' + model + '.fields_get'
             }, this.session);
-            return prm;
         },
         sig_unsel_all: function() {
             this.fields_selected.empty();
@@ -1268,10 +1266,14 @@
                 'text' : Sao.i18n.gettext('Predefined Exports')
             })).appendTo(row_header);
 
-            predefined_exports_column.append(jQuery('<div/>', {
-                'class' : 'well',
-                'height' : '5%'
-            }));
+            this.predef_exports_div = jQuery('<ul/>', {
+                'class' : 'well list-unstyled',
+                'min-height' : '5%'
+            }).css('cursor', 'pointer').css('padding', '5px')
+            .appendTo(predefined_exports_column);
+
+            this.predef_exports = [];
+            this.fill_predefwin();
 
             jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
@@ -1303,8 +1305,6 @@
                 'val' : 'save',
                 'text' : Sao.i18n.gettext('Save')
             })).appendTo(this.chooser_form);
-
-            var add_field_names_label =
 
             this.el_add_field_names = jQuery('<input/>', {
                 'type' : 'checkbox',
@@ -1385,13 +1385,12 @@
             if (node.next()[0].localName != 'ul'){
                 var prefix_field = node.attr('path');
                 var string = this.fields[prefix_field][0];
-                var long_string = this.fields[prefix_field][1];
                 var relation = this.fields[prefix_field][2];
                 var container_node = jQuery('<ul/>').css('list-style', 'none')
                                         .insertAfter(node);
                 this.get_fields(relation).done(function(fields) {
                     this.model_populate(fields, container_node,
-                        prefix_field+'/', name+'/');
+                        prefix_field+'/', string+'/');
                 }.bind(this));
             }
         },
@@ -1404,9 +1403,49 @@
             if (relation) return;
             var node = jQuery('<li/>', {
                 'path' : name,
-            }).html(string).click(function(){
+            }).html(long_string).click(function(){
                 node.toggleClass('bg-primary');
             }).appendTo(this.fields_selected);
+        },
+        fill_predefwin: function(){
+            Sao.rpc({
+                'method' : 'model.ir.export.search',
+                'params' : [['resource', '=', this.screen.model_name], {}]
+            }, this.session).done(function(export_ids) {
+                Sao.rpc({
+                    'method' : 'model.ir.export.read',
+                    'params' : [export_ids, {}]
+                }, this.session).done(function(exports) {
+                    var arr = [];
+                    exports.forEach(function(o) {
+                        for (var i = 0; i < o.export_fields.length; 
+                            arr.push(o.export_fields[i++]));
+                    });
+                    Sao.rpc({
+                        'method' : 'model.ir.export.line.read',
+                        'params' : [arr, {}]
+                    }, this.session).done(function(lines) {
+                        var id2lines = {};
+                        lines.forEach(function(line) {
+                            id2lines[line.export]  = id2lines[line.export] || [];
+                            id2lines[line.export].push(line);
+                        });
+                        exports.forEach(function(export_) {
+                            this.predef_exports.push([export_.id, 
+                                id2lines[export_.id].map(function(obj) {
+                                    if(obj.id == export_.id) return obj.name;
+                                }), export_.name]);
+                            var node = jQuery('<li/>', {
+                                'text' : export_.name,
+                                'value' : export_.id
+                            }).click(function() {
+                                node.toggleClass('bg-primary');
+                            });
+                            this.predef_exports_div.append(node);
+                        }.bind(this));
+                    }.bind(this));
+                }.bind(this));
+            }.bind(this));
         },
         response: function(response_id) {
             if(response_id == 'RESPONSE_OK'){
