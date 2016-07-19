@@ -806,6 +806,7 @@
         },
         export: function(){
             new Sao.Window.Export(this.screen);
+            // TODO
             // for name in self.screen.current_view.get_fields():
             //     export.sel_field(name)
         },

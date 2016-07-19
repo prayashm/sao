@@ -764,6 +764,7 @@
             "x-cp1255", "x-cp1256", "x-cp1257", "x-cp1258", "x-euc-jp", "x-gbk",
             "x-mac-cyrillic", "x-mac-roman", "x-mac-ukrainian", "x-sjis",
             "x-user-defined", "x-x-big5"];
+            // Passing blank title, it will be set by Child Class
             this.dialog = new Sao.Dialog('', 'csv', 'lg');
             this.el = this.dialog.modal;
 
@@ -786,12 +787,11 @@
                 'class': 'row'
             }).appendTo(this.dialog.body);
 
-            jQuery('<hr>').appendTo(this.dialog.body);
+            jQuery('<hr/>').appendTo(this.dialog.body);
 
             var column_fields_all = jQuery('<div/>', {
-                'class' : 'col-md-4',
-                'height' : '300px'
-            }).css('overflow-y', 'scroll').append(jQuery('<label/>',{
+                'class' : 'col-md-4 column-fields'
+            }).append(jQuery('<label/>',{
                 'text' : Sao.i18n.gettext('All Fields')
             })).appendTo(row_fields);
 
@@ -815,7 +815,7 @@
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-plus'
             })).click(function(){
-                this.fields_all.find('.bg-primary').each(function(i, el_field){
+                this.fields_all.find('.bg-primary').each(function(i, el_field) {
                     this.sig_sel_add(el_field);
                 }.bind(this));
             }.bind(this)).append(Sao.i18n.gettext(' Add'))
@@ -838,14 +838,14 @@
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-remove'
             })).click(function(){
-                this.sig_unsel_all();
+                this.fields_selected.empty();
             }.bind(this)).append(Sao.i18n.gettext(' Clear'))
             .appendTo(this.column_buttons);
 
             jQuery('<hr>').appendTo(this.column_buttons);
 
             var column_fields_selected = jQuery('<div/>', {
-                'class' : 'col-md-4'
+                'class' : 'col-md-4 column-fields'
             }).append(jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('Fields Selected')
             })).appendTo(row_fields);
@@ -875,7 +875,7 @@
                 'text' : Sao.i18n.gettext('CSV Parameters')
             })).appendTo(row_csv_param);
 
-            this.expander_csv  = jQuery('<div/>', {
+            this.expander_csv = jQuery('<div/>', {
                 'id' : 'expander_csv',
                 'class' : 'collapse'
             }).appendTo(row_csv_param);
@@ -941,7 +941,7 @@
                 'id' : 'input-encoding'
             });
 
-            for(var i=0; i<this.encodings.length; i++){
+            for(var i=0; i<this.encodings.length; i++) {
                 jQuery('<option/>',{
                     'val' : this.encodings[i]
                 }).html(this.encodings[i]).appendTo(this.el_csv_encoding);
@@ -952,7 +952,7 @@
                 navigator.platform == 'Windows') {
                 enc = 'cp1252';
             }
-            this.el_csv_encoding.children('option[value="'+enc+'"]')
+            this.el_csv_encoding.children('option[value="' + enc + '"]')
             .attr('selected', 'selected');
 
             jQuery('<div/>', {
@@ -968,9 +968,6 @@
             return Sao.rpc({
                 'method' : 'model.' + model + '.fields_get'
             }, this.session);
-        },
-        sig_unsel_all: function() {
-            this.fields_selected.empty();
         }
     });
 
@@ -1048,8 +1045,12 @@
             prefix_name = prefix_name || '';
 
             var fields_order = Object.keys(fields).sort(function(a,b) {
-                if (fields[b].string < fields[a].string) return -1;
-                else return 1;
+                if (fields[b].string < fields[a].string) {
+                    return -1;
+                }
+                else {
+                    return 1;
+                }
             }).reverse();
 
             fields_order.forEach(function(field){
@@ -1064,7 +1065,7 @@
                     name = prefix_name + name;
                     // Only One2Many can be nested for import
                     var relation;
-                    if (fields[field].type == 'one2many'){
+                    if (fields[field].type == 'one2many') {
                         relation = fields[field].relation;
                     } else {
                         relation = null;
@@ -1079,10 +1080,10 @@
                             e.stopPropagation();
                             expander_icon.toggleClass('glyphicon-plus')
                             .toggleClass('glyphicon-minus');
-                            if(expander_icon[0].classList[1] ==
-                                'glyphicon-minus'){
+                            if(expander_icon.hasClass('glyphicon-minus')) {
                                 this.on_row_expanded(node);
-                            } else {
+                            }
+                            else {
                                 node.next('ul').remove();
                             }
                         }.bind(this)).prependTo(node);
@@ -1096,10 +1097,10 @@
             var name = this.fields[prefix_field][0];
             var model = this.fields[prefix_field][1];
             var container_node = jQuery('<ul/>').css('list-style', 'none')
-                                    .insertAfter(node);
+                .insertAfter(node);
             this.get_fields(model).done(function(fields){
                 this.model_populate(fields, container_node,
-                    prefix_field+'/', name+'/');
+                    prefix_field + '/', name + '/');
                 dfd.resolve(this);
             }.bind(this));
             return dfd.promise();
@@ -1109,9 +1110,9 @@
             if(!fname){
                 Sao.common.message.run(
                     Sao.i18n.gettext('You must select an import file first'));
-                return true;
+                return;
             }
-            this.sig_unsel_all();
+            this.fields_selected.empty();
             this.el_csv_skip.val(1);
             Papa.parse(this.file_input[0].files[0], {
                 config: {
@@ -1126,9 +1127,10 @@
                 },
                 complete: function(results) {
                     results.data[0].forEach(function(word){
-                        if(word in this.fields_invert || word in this.fields){
+                        if(word in this.fields_invert || word in this.fields) {
                             this.auto_select(word);
-                        } else {
+                        }
+                        else {
                             var fields = this.fields_all.children('li');
                             var prefix = '';
                             var parents = word.split('/');
@@ -1140,19 +1142,20 @@
         },
         auto_select: function(word) {
             var name,field;
-            if(word in this.fields_invert){
+            if(word in this.fields_invert) {
                 name = word;
                 field = this.fields_invert[word];
-            } else if (word in this.fields) {
+            }
+            else if (word in this.fields) {
                 name = this.fields[word][0];
                 field = [word];
-            } else {
+            }
+            else {
                 Sao.common.warning.run(
                     Sao.i18n.gettext(
-                        'Error processing the file at field '+
-                        word+'.'),
+                        'Error processing the file at field %1.', word),
                         Sao.i18n.gettext('Error'));
-                return true;
+                return;
             }
             var node = jQuery('<li/>', {
                 'field': field
@@ -1161,15 +1164,15 @@
             }).appendTo(this.fields_selected);
         },
         traverse: function(fields, prefix, parents, i) {
-            if(i >= parents.length-1) {
+            if(i >= parents.length - 1) {
                 this.auto_select(parents.join('/'));
                 return;
             }
             var field, item;
-            for(item = 0; item<fields.length; item++){
+            for(item = 0; item<fields.length; item++) {
                 field = jQuery(fields[item]);
                 if(field.text().trim() == parents[i] ||
-                field.attr('field') == (prefix+parents[i])){
+                field.attr('field') == (prefix+parents[i])) {
                     field.children('i')
                         .toggleClass('glyphicon-plus glyphicon-minus');
                     this.on_row_expanded(field).done(callback);
@@ -1180,23 +1183,24 @@
                 this.auto_select(parents.join('/'));
                 return;
             }
-            function callback(self){
+            function callback(self) {
                 fields = field.next('ul').children('li');
                 self.traverse(fields, parents[i] + '/', parents, ++i);
             }
         },
         response: function(response_id) {
-            if(response_id == 'RESPONSE_OK'){
+            if(response_id == 'RESPONSE_OK') {
                 var fields = [];
-                this.fields_selected.children('li').each(function(i, field_el){
+                this.fields_selected.children('li').each(function(i, field_el) {
                     fields.push(field_el.getAttribute('field'));
                 });
                 this.el.modal('hide');
                 var fname = this.file_input.val();
-                if(fname){
+                if(fname) {
                     this.import_csv(fname, fields);
                 }
-            } else {
+            }
+            else {
                 this.el.modal('hide');
             }
         },
@@ -1210,7 +1214,7 @@
                     // TODO quoteChar: this.el_csv_quotechar.val(),
                     encoding: encoding
                 },
-                error: function(err, file, inputElem, reason){
+                error: function(err, file, inputElem, reason) {
                     Sao.common.warning(
                         Sao.i18n.gettext('Error occured in loading the file'));
                 },
@@ -1220,8 +1224,8 @@
                     }
                     var data = [];
                     results.data.pop('');
-                    results.data.forEach(function(line, i){
-                        if(i < skip){
+                    results.data.forEach(function(line, i) {
+                        if(i < skip) {
                             return;
                         }
                         var arr = [];
@@ -1234,14 +1238,9 @@
                         'method' : 'model.' + this.screen.model_name +
                         '.import_data',
                         'params' : [fields, data, {}]
-                    }, this.session).done(function(count){
-                        if (count == 1){
-                            Sao.common.message.run(
-                                Sao.i18n.gettext('%1 record imported', count));
-                        } else {
-                            Sao.common.message.run(
-                                Sao.i18n.gettext('%1 records imported', count));
-                        }
+                    }, this.session).done(function(count) {                            Sao.common.message.run(
+                        Sao.i18n.ngettext('%1 record imported',
+                            '%1 records imported', count));
                     });
                 }.bind(this)
             });
@@ -1267,12 +1266,11 @@
             })).appendTo(row_header);
 
             this.predef_exports_div = jQuery('<ul/>', {
-                'class' : 'well list-unstyled',
-                'min-height' : '5%'
-            }).css('cursor', 'pointer').css('padding', '5px')
+                'class' : 'well list-unstyled predef-exports'
+            }).css('cursor', 'pointer')
             .appendTo(predefined_exports_column);
 
-            this.predef_exports = [];
+            this.predef_exports = {};
             this.fill_predefwin();
 
             jQuery('<button/>', {
@@ -1281,7 +1279,7 @@
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-floppy-save'
             })).click(function(){
-                // TODO
+                this.addreplace_predef();
             }.bind(this)).append(Sao.i18n.gettext(' Save Export'))
             .appendTo(this.column_buttons);
 
@@ -1326,10 +1324,12 @@
             prefix_name = prefix_name || '';
 
             var names = Object.keys(fields).sort(function(a,b) {
-                if ((fields[b].string || b) < (fields[a].string || a))
+                if ((fields[b].string || b) < (fields[a].string || a)) {
                     return -1;
-                else
+                }
+                else {
                     return 1;
+                }
             }).reverse();
 
             names.forEach(function(name) {
@@ -1349,8 +1349,9 @@
                     var path = prefix_field + item.name;
                     var long_string = item.string;
 
-                    if (prefix_field)
+                    if (prefix_field) {
                         long_string = prefix_name + item.string;
+                    }
 
                     var node = jQuery('<li/>', {
                         'path' : path
@@ -1362,7 +1363,7 @@
                         item.field.relation];
 
                     // Insert relation only to real field
-                    if (item.name.indexOf('.') == -1 && item.field.relation){
+                    if (item.name.indexOf('.') == -1 && item.field.relation) {
                         node.prepend(' ');
                         var expander_icon = jQuery('<i/>', {
                             'class' : 'glyphicon glyphicon-plus'
@@ -1370,10 +1371,10 @@
                             e.stopPropagation();
                             expander_icon.toggleClass('glyphicon-plus')
                             .toggleClass('glyphicon-minus');
-                            if(expander_icon[0].classList[1] ==
-                                'glyphicon-minus') {
+                            if(expander_icon.hasClass('glyphicon-minus')) {
                                 this.on_row_expanded(node);
-                            } else {
+                            }
+                            else {
                                 node.next('ul').remove();
                             }
                         }.bind(this)).prependTo(node);
@@ -1382,32 +1383,25 @@
             }.bind(this));
         },
         on_row_expanded: function(node) {
-            if (node.next()[0].localName != 'ul'){
-                var prefix_field = node.attr('path');
-                var string = this.fields[prefix_field][0];
-                var relation = this.fields[prefix_field][2];
-                var container_node = jQuery('<ul/>').css('list-style', 'none')
-                                        .insertAfter(node);
-                this.get_fields(relation).done(function(fields) {
-                    this.model_populate(fields, container_node,
-                        prefix_field+'/', string+'/');
-                }.bind(this));
-            }
+            var dfd = jQuery.Deferred();
+            var prefix_field = node.attr('path');
+            var string = this.fields[prefix_field][0];
+            var relation = this.fields[prefix_field][2];
+            var container_node = jQuery('<ul/>').css('list-style', 'none')
+                .insertAfter(node);
+            this.get_fields(relation).done(function(fields) {
+                this.model_populate(fields, container_node,
+                    prefix_field + '/', string + '/');
+                dfd.resolve(this);
+            }.bind(this));            
+            return dfd.promise();
         },
         sig_sel_add: function(el_field) {
             el_field = jQuery(el_field);
             var name = el_field.attr('path');
-            var string = this.fields[name][0];
-            var long_string = this.fields[name][1];
-            var relation = this.fields[name][2];
-            if (relation) return;
-            var node = jQuery('<li/>', {
-                'path' : name,
-            }).html(long_string).click(function(){
-                node.toggleClass('bg-primary');
-            }).appendTo(this.fields_selected);
+            this.sel_field(name);
         },
-        fill_predefwin: function(){
+        fill_predefwin: function() {
             Sao.rpc({
                 'method' : 'model.ir.export.search',
                 'params' : [['resource', '=', this.screen.model_name], {}]
@@ -1427,28 +1421,105 @@
                     }, this.session).done(function(lines) {
                         var id2lines = {};
                         lines.forEach(function(line) {
-                            id2lines[line.export]  = id2lines[line.export] || [];
+                            id2lines[line.export] = id2lines[line.export] || [];
                             id2lines[line.export].push(line);
                         });
                         exports.forEach(function(export_) {
-                            this.predef_exports.push([export_.id, 
+                            this.predef_exports[export_.id] =
                                 id2lines[export_.id].map(function(obj) {
-                                    if(obj.id == export_.id) return obj.name;
-                                }), export_.name]);
+                                    if(obj.export == export_.id)
+                                        return obj.name;
+                                });
                             var node = jQuery('<li/>', {
-                                'text' : export_.name,
-                                'value' : export_.id
+                                'text' : export_.name
                             }).click(function() {
-                                node.toggleClass('bg-primary');
-                            });
+                                if(node.hasClass('bg-primary')) {
+                                    node.removeClass('bg-primary');
+                                }
+                                else {
+                                    $(this).addClass('bg-primary')
+                                        .siblings().removeClass('bg-primary');
+                                }
+                            }).dblclick(function() {
+                                this.sel_predef(export_.id);
+                            }.bind(this));
                             this.predef_exports_div.append(node);
                         }.bind(this));
                     }.bind(this));
                 }.bind(this));
             }.bind(this));
         },
+        addreplace_predef: function() {
+            var fields = [];
+            // TODO
+            if(fields.length === 0) {
+                return;
+            }
+
+            var selection = this.predef_exports_div.children('.bg-primary');
+            if (!selection) {
+                return;
+            }
+            var model = selection;
+            var iter = selection;
+        },
+        sel_predef: function(export_id) {
+            this.fields_selected.empty();
+            this.predef_exports[export_id].forEach(function(name) {
+                if (!(name in this.fields)) {
+                    var fields = this.fields_all.children('li');
+                    var prefix = '';
+                    var parents = name.split('/');
+                    this.traverse(fields, prefix, parents, 0);
+                }
+
+                if(!(name in this.fields)) {
+                    return;
+                }
+                this.sel_field(name);
+            }.bind(this));
+        },
+        traverse: function(fields, prefix, parents, i) {
+            // TO DO: Fix expander icon behavior and appearance for
+            // sel_predef(Accounts_Revenue/Chidren/Balance)
+            if(i >= parents.length-1) {
+                this.sel_field(parents.join('/'));
+                return;
+            }
+            var field, item;
+            for(item = 0; item<fields.length; item++) {
+                field = jQuery(fields[item]);
+                if(field.attr('path') == (prefix+parents[i])) {
+                    field.children('i')
+                        .toggleClass('glyphicon-plus glyphicon-minus');
+                    this.on_row_expanded(field).done(callback);
+                    break;
+                }
+            }
+            if(item == fields.length) {
+                this.sel_field(parents.join('/'));
+                return;
+            }
+            function callback(self){
+                fields = field.next('ul').children('li');
+                prefix += parents[i] + '/';
+                self.traverse(fields, prefix, parents, ++i);
+            }
+        },
+        sel_field: function(name) {
+            var long_string = this.fields[name][1];
+            var relation = this.fields[name][2];
+            if (relation) {
+                return;
+            }
+            var node = jQuery('<li/>', {
+                'path' : name,
+            }).html(long_string).click(function(){
+                node.toggleClass('bg-primary');
+            }).appendTo(this.fields_selected);
+        },
         response: function(response_id) {
-            if(response_id == 'RESPONSE_OK'){
+            if(response_id == 'RESPONSE_OK') {
                 // TODO
             } else {
                 this.el.modal('hide');
