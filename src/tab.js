@@ -805,10 +805,11 @@
             }.bind(this));
         },
         export: function(){
-            new Sao.Window.Export(this.screen);
-            // TODO
-            // for name in self.screen.current_view.get_fields():
-            //     export.sel_field(name)
+            new Sao.Window.Export(this.screen,
+                this.screen.current_view.selected_records().map(function(r) {
+                    return r.id;
+                }),
+                this.screen.current_view.get_fields());
         },
         import: function(){
             new Sao.Window.Import(this.screen);

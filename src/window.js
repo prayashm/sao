@@ -717,7 +717,7 @@
     });
 
     Sao.Window.CSV = Sao.class_(Object, {
-        init: function() {
+        init: function(title) {
             this.encodings = ["866", "ansi_x3.4-1968", "arabic", "ascii",
             "asmo-708", "big5", "big5-hkscs", "chinese", "cn-big5", "cp1250",
             "cp1251", "cp1252", "cp1253", "cp1254", "cp1255", "cp1256",
@@ -764,9 +764,12 @@
             "x-cp1255", "x-cp1256", "x-cp1257", "x-cp1258", "x-euc-jp", "x-gbk",
             "x-mac-cyrillic", "x-mac-roman", "x-mac-ukrainian", "x-sjis",
             "x-user-defined", "x-x-big5"];
-            // Passing blank title, it will be set by Child Class
-            this.dialog = new Sao.Dialog('', 'csv', 'lg');
+            this.dialog = new Sao.Dialog(title, 'csv', 'lg');
             this.el = this.dialog.modal;
+
+            this.el.on('loaded.bs.modal', function () {
+                
+            });
 
             jQuery('<button/>', {
                 'class': 'btn btn-link',
@@ -800,9 +803,12 @@
             }).css('cursor', 'pointer')
             .appendTo(column_fields_all);
 
+            var prm = jQuery.Deferred();
             this.get_fields(this.screen.model_name)
                 .done(function(fields){
-                    this.model_populate(fields);
+                    this.model_populate(fields).then(function() {
+                        prm.resolve();
+                    });
                 }.bind(this));
 
             this.column_buttons = jQuery('<div/>', {
@@ -963,6 +969,7 @@
             .appendTo(this.expander_csv);
 
             this.el.modal('show');
+            return prm;
         },
         get_fields: function(model) {
             return Sao.rpc({
@@ -978,8 +985,8 @@
             this.fields = {};
             this.fields_data = {};
             this.fields_invert = {};
-            Sao.Window.Import._super.init.call(this);
-            this.dialog.add_title(Sao.i18n.gettext('Import from CSV'));
+            Sao.Window.Import._super.init.call(this,
+                Sao.i18n.gettext('Import from CSV'));
 
             jQuery('<button/>', {
                 'class' : 'btn btn-default btn-block',
@@ -1090,6 +1097,7 @@
                     }
                 }
             }.bind(this));
+            return jQuery.Deferred();
         },
         on_row_expanded: function(node) {
             var dfd = jQuery.Deferred();
@@ -1248,12 +1256,17 @@
     });
 
     Sao.Window.Export = Sao.class_(Sao.Window.CSV, {
-        init: function(screen) {
+        init: function(screen, ids, names) {
+            this.ids = ids;
             this.screen = screen;
             this.session = Sao.Session.current_session;
             this.fields = {};
-            Sao.Window.Export._super.init.call(this);
-            this.dialog.add_title(Sao.i18n.gettext('Export to CSV'));
+            Sao.Window.Export._super.init.call(this,
+                Sao.i18n.gettext('Export to CSV')).then(function() {
+                    names.forEach(function(name) {
+                        this.sel_field(name);
+                    }.bind(this));
+                }.bind(this));
 
             var row_header = jQuery('<div/>', {
                 'class' : 'row'
@@ -1289,12 +1302,13 @@
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-floppy-remove'
             })).click(function(){
-                // TODO
+                this.remove_predef();
             }.bind(this)).append(Sao.i18n.gettext(' Delete Export'))
             .appendTo(this.column_buttons);
 
-            jQuery('<select/>', {
+            this.saveas = jQuery('<select/>', {
                 'class' : 'form-control',
+                // Expands the chooser within dialog like GTK Client
                 'width' : '100%'
             }).append(jQuery('<option/>', {
                 'val': 'open',
@@ -1332,6 +1346,7 @@
                 }
             }).reverse();
 
+            var prm = jQuery.Deferred();
             names.forEach(function(name) {
                 var field = fields[name];
                 var string = field.string || name;
@@ -1381,6 +1396,8 @@
                     }
                 }.bind(this));
             }.bind(this));
+            prm.resolve();
+            return prm;
         },
         on_row_expanded: function(node) {
             var dfd = jQuery.Deferred();
@@ -1430,38 +1447,107 @@
                                     if(obj.export == export_.id)
                                         return obj.name;
                                 });
-                            var node = jQuery('<li/>', {
-                                'text' : export_.name
-                            }).click(function() {
-                                if(node.hasClass('bg-primary')) {
-                                    node.removeClass('bg-primary');
-                                }
-                                else {
-                                    $(this).addClass('bg-primary')
-                                        .siblings().removeClass('bg-primary');
-                                }
-                            }).dblclick(function() {
-                                this.sel_predef(export_.id);
-                            }.bind(this));
-                            this.predef_exports_div.append(node);
+                            this.add_to_predef(export_.id, export_.name);
                         }.bind(this));
+                        // This doesn't work for now
+                        this.predef_exports_div.children('li').first().focus();
                     }.bind(this));
                 }.bind(this));
             }.bind(this));
         },
+        add_to_predef: function(id, name) {
+            var node = jQuery('<li/>', {
+                'text' : name,
+                'export_id' : id
+            }).click(function() {
+                if(node.hasClass('bg-primary')) {
+                    node.removeClass('bg-primary');
+                }
+                else {
+                    $(this).addClass('bg-primary')
+                    .siblings().removeClass('bg-primary');
+                }
+            }).dblclick(function(event) {
+                node.addClass('bg-primary');
+                this.sel_predef(jQuery(event.target).attr('export_id'));
+            }.bind(this));
+            this.predef_exports_div.append(node);
+        },
         addreplace_predef: function() {
             var fields = [];
-            // TODO
+            var selected_fields = this.fields_selected.children('li');
+            for(var i=0; i<selected_fields.length; i++) {
+                fields.push(selected_fields[i].getAttribute('path'));
+            }
             if(fields.length === 0) {
                 return;
             }
-
-            var selection = this.predef_exports_div.children('.bg-primary');
-            if (!selection) {
+            var pref_id, name;
+            var selection = this.predef_exports_div.children('li.bg-primary');
+            if (selection.length === 0) {
+                pref_id = null;
+                Sao.common.ask.run(
+                    Sao.i18n.gettext('What is the name of this export?'))
+                .then(function(name) {
+                    if (!name) {
+                        return;
+                    }
+                    this.save_predef(name, fields, selection);
+                }.bind(this));    
+            }
+            else {
+                // selection = jQuery(selection);
+                pref_id = selection.attr('export_id');
+                name = selection.text();
+                Sao.common.sur.run(
+                    Sao.i18n.gettext('Override %1 definition?', name))
+                .done(function() {
+                    this.save_predef(name, fields, selection);
+                    Sao.rpc({
+                        'method': 'model.ir.export.delete',
+                        'params': [[pref_id], {}]
+                    }, this.session).then(function() {
+                        delete this.predef_exports[pref_id];
+                    }.bind(this));
+                }.bind(this));
+            }
+        },
+        save_predef: function(name, fields, selection) {
+            Sao.rpc({
+                'method' : 'model.ir.export.create',
+                'params' : [[{
+                    'name': name,
+                    'resource': this.screen.model_name,
+                    'export_fields': [['create', fields.map(function(x) {
+                        return {
+                            'name': x
+                        };
+                    })]]
+                }], {}]
+            }, this.session).then(function(new_id) {
+                this.predef_exports[new_id] = fields;
+                if (selection.length === 0) {
+                    this.add_to_predef(new_id, name);
+                }
+                else {
+                    this.predef_exports[new_id] = fields;
+                    selection.attr('export_id', new_id);
+                }
+            }.bind(this));
+        },
+        remove_predef: function() {
+            var selection = this.predef_exports_div.children('li.bg-primary');
+            if (selection.length === 0) {
                 return;
             }
-            var model = selection;
-            var iter = selection;
+            var export_id = jQuery(selection).attr('export_id');
+            Sao.rpc({
+                'method': 'model.ir.export.delete',
+                'params': [[export_id], {}]
+            }, this.session).then(function() {
+                delete this.predef_exports[export_id];
+                selection.remove();
+            }.bind(this));
         },
         sel_predef: function(export_id) {
             this.fields_selected.empty();
@@ -1520,9 +1606,38 @@
         },
         response: function(response_id) {
             if(response_id == 'RESPONSE_OK') {
-                // TODO
+                var fields = [];
+                var fields2 = [];
+                this.fields_selected.children('li').each(function(i, field) {
+                    fields.push(field.getAttribute('path'));
+                    fields2.push(field.innerText);
+                });
+                var action = this.saveas.val();
+                Sao.rpc({
+                    'method': 'model.' + this.screen.model_name + '.export_data',
+                    'params': [this.ids, fields, {}]
+                }, this.session).then(function(data) {
+                    var fname;
+                    if (action == 'open') {
+                        // TODO
+                        this.export_csv(fname, fields2, data, false);
+                    }
+                    else {
+                        // TODO
+                        this.export_csv(fname, fields2, data, true);
+                    }
+                }.bind(this));
             } else {
                 this.el.modal('hide');
+            }
+        },
+        export_csv: function(fname, fields, data, popup) {
+            var encoding = this.el_csv_encoding.val();
+            // TODO
+            if (popup) {
+                Sao.common.message.run(
+                    Sao.i18n.ngettext('%1 record imported',
+                        '%1 records imported', data.length));
             }
         }
     });
