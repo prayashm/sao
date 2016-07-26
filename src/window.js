@@ -767,10 +767,6 @@
             this.dialog = new Sao.Dialog(title, 'csv', 'lg');
             this.el = this.dialog.modal;
 
-            this.el.on('loaded.bs.modal', function () {
-                
-            });
-
             jQuery('<button/>', {
                 'class': 'btn btn-link',
                 'type': 'button'
@@ -969,6 +965,9 @@
             .appendTo(this.expander_csv);
 
             this.el.modal('show');
+            this.el.on('hidden.bs.modal', function() {
+                jQuery(this).remove();
+            });
             return prm;
         },
         get_fields: function(model) {
@@ -1278,7 +1277,7 @@
                 'text' : Sao.i18n.gettext('Predefined Exports')
             })).appendTo(row_header);
 
-            this.predef_exports_div = jQuery('<ul/>', {
+            this.predef_exports_list = jQuery('<ul/>', {
                 'class' : 'well list-unstyled predef-exports'
             }).css('cursor', 'pointer')
             .appendTo(predefined_exports_column);
@@ -1449,8 +1448,7 @@
                                 });
                             this.add_to_predef(export_.id, export_.name);
                         }.bind(this));
-                        // This doesn't work for now
-                        this.predef_exports_div.children('li').first().focus();
+                        this.predef_exports_list.children('li').first().focus();
                     }.bind(this));
                 }.bind(this));
             }.bind(this));
@@ -1458,20 +1456,27 @@
         add_to_predef: function(id, name) {
             var node = jQuery('<li/>', {
                 'text' : name,
-                'export_id' : id
+                'export_id' : id,
+                'tabindex': 0
+            }).on('keypress', function(e) {
+                var keyCode = (e.keyCode ? e.keyCode : e.which);
+                if(keyCode == 13 || keyCode == 32) {
+                    node.dblclick();
+                }
             }).click(function() {
                 if(node.hasClass('bg-primary')) {
                     node.removeClass('bg-primary');
                 }
                 else {
-                    $(this).addClass('bg-primary')
-                    .siblings().removeClass('bg-primary');
+                    node.addClass('bg-primary')
+                        .siblings().removeClass('bg-primary');
                 }
             }).dblclick(function(event) {
-                node.addClass('bg-primary');
+                node.addClass('bg-primary')
+                    .siblings().removeClass('bg-primary');
                 this.sel_predef(jQuery(event.target).attr('export_id'));
             }.bind(this));
-            this.predef_exports_div.append(node);
+            this.predef_exports_list.append(node);
         },
         addreplace_predef: function() {
             var fields = [];
@@ -1483,7 +1488,7 @@
                 return;
             }
             var pref_id, name;
-            var selection = this.predef_exports_div.children('li.bg-primary');
+            var selection = this.predef_exports_list.children('li.bg-primary');
             if (selection.length === 0) {
                 pref_id = null;
                 Sao.common.ask.run(
@@ -1536,7 +1541,7 @@
             }.bind(this));
         },
         remove_predef: function() {
-            var selection = this.predef_exports_div.children('li.bg-primary');
+            var selection = this.predef_exports_list.children('li.bg-primary');
             if (selection.length === 0) {
                 return;
             }
@@ -1614,17 +1619,15 @@
                 });
                 var action = this.saveas.val();
                 Sao.rpc({
-                    'method': 'model.' + this.screen.model_name + '.export_data',
+                    'method': 'model.' + this.screen.model_name +
+                        '.export_data',
                     'params': [this.ids, fields, {}]
                 }, this.session).then(function(data) {
-                    var fname;
                     if (action == 'open') {
-                        // TODO
-                        this.export_csv(fname, fields2, data, false);
+                        this.export_csv(fields2, data, false);
                     }
                     else {
-                        // TODO
-                        this.export_csv(fname, fields2, data, true);
+                        this.export_csv(fields2, data, true);
                     }
                 }.bind(this));
             } else {
@@ -1632,12 +1635,28 @@
             }
         },
         export_csv: function(fname, fields, data, popup) {
+            // TODO: custom quote character, encoding
             var encoding = this.el_csv_encoding.val();
-            // TODO
+            var unparse_obj = {};
+            unparse_obj.data = data;
+            if (this.el_add_field_names.is(':checked')) {
+                unparse_obj.fields = fields;
+            }
+            var csv = Papa.unparse(unparse_obj, {
+                delimiter: this.el_csv_delimiter.val()
+            });
+            var blob = new Blob([csv], {type: 'text/csv'});
+            var blob_url = window.URL.createObjectURL(blob);
+            if (this.blob_url) {
+                window.URL.revokeObjectURL(this.blob_url);
+            }
+            this.blob_url = blob_url;
+            window.open(blob_url);
+
             if (popup) {
                 Sao.common.message.run(
-                    Sao.i18n.ngettext('%1 record imported',
-                        '%1 records imported', data.length));
+                    Sao.i18n.ngettext('%1 record saved',
+                        '%1 records saved', data.length));
             }
         }
     });
