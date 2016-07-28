@@ -645,6 +645,7 @@
             var succeed = function(values, exception) {
                 if (exception === undefined) exception = false;
                 var id2value = {};
+                var promises = [];
                 values.forEach(function(e, i, a) {
                     id2value[e.id] = e;
                 });
@@ -664,9 +665,10 @@
                             }
                             delete value[key];
                         }
-                        record.set(value);
+                        promises.push(record.set(value));
                     }
                 }
+                return jQuery.when.apply(jQuery, promises);
             }.bind(this);
             var failed = function() {
                 var failed_values = [];
@@ -680,7 +682,7 @@
                     }
                     failed_values.push(default_values);
                 }
-                succeed(failed_values, true);
+                return succeed(failed_values, true);
             };
             this.group.prm = prm.then(succeed, failed);
             return this.group.prm;
@@ -689,6 +691,7 @@
             var name, value;
             var rec_named_fields = ['many2one', 'one2one', 'reference'];
             var later = {};
+            var promises = [];
             for (name in values) {
                 if (!values.hasOwnProperty(name)) {
                     continue;
@@ -728,6 +731,14 @@
                 this.model.fields[name].set(this, value);
                 this._loaded[name] = true;
             }
+            for (var fname in this.model.fields) {
+                var field = this.model.fields[fname];
+                if (field.description.autocomplete &&
+                        field.description.autocomplete.length > 0) {
+                    promises.push(this.do_autocomplete(fname));
+                }
+            }
+            return jQuery.when.apply(jQuery, promises);
         },
         get: function() {
             var value = {};
@@ -775,6 +786,14 @@
         default_get: function() {
             var dfd = jQuery.Deferred();
             var promises = [];
+            // Ensure promisses is filled before default_get is resolved
+            for (var fname in this.model.fields) {
+                var field = this.model.fields[fname];
+                if (field.description.autocomplete &&
+                        field.description.autocomplete.length > 0) {
+                    promises.push(this.do_autocomplete(fname));
+                }
+            }
             if (!jQuery.isEmptyObject(this.model.fields)) {
                 var prm = this.model.execute('default_get',
                         [Object.keys(this.model.fields)], this.get_context());
@@ -793,18 +812,11 @@
                                 this.group.parent.id;
                         }
                     }
-                    this.set_default(values);
+                    promises.push(this.set_default(values));
                     jQuery.when.apply(jQuery, promises).then(function() {
                         dfd.resolve(values);
                     });
                 }.bind(this));
-            }
-            for (var fname in this.model.fields) {
-                var field = this.model.fields[fname];
-                if (field.description.autocomplete &&
-                        field.description.autocomplete.length > 0) {
-                    promises.push(this.do_autocomplete(fname));
-                }
             }
             return dfd;
         },
@@ -1839,7 +1851,7 @@
                             promises.push(new_record.set_default(vals, false));
                             group.add(new_record);
                         } else {
-                            new_record.set(vals);
+                            promises.push(new_record.set(vals));
                             group.push(new_record);
                         }
                     });
@@ -2295,8 +2307,8 @@
             return data;
         },
         get_data: function(record) {
-            var prm;
-            var data = record._values[this.name] || 0;
+            var data = record._values[this.name] || [];
+            var prm = jQuery.when(data);
             if (!(data instanceof Uint8Array)) {
                 if (record.id < 0) {
                     return prm;
@@ -2306,8 +2318,6 @@
                     context).then(function(data) {
                         return data[0][this.name];
                     }.bind(this));
-            } else {
-                prm = jQuery.when(data);
             }
             return prm;
         }

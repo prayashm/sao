@@ -380,6 +380,14 @@
                 new Sao.PYSON.Greater(1, 1, true));
         QUnit.strictEqual(new Sao.PYSON.Decoder().decode(eval_), true,
                 'decode(Greater(1, 1, true))');
+
+        eval_ = new Sao.PYSON.Encoder().encode(new Sao.PYSON.Greater(null, 1));
+        QUnit.strictEqual(new Sao.PYSON.Decoder().decode(eval_), false,
+                'decode(Greater(null, 1))');
+
+        eval_ = new Sao.PYSON.Encoder().encode(new Sao.PYSON.Greater(1, null));
+        QUnit.strictEqual(new Sao.PYSON.Decoder().decode(eval_), true,
+                'decode(Greater(1, null))');
     });
 
     QUnit.test('PYSON Less', function() {
@@ -429,6 +437,14 @@
                 new Sao.PYSON.Less(1, 1, true));
         QUnit.strictEqual(new Sao.PYSON.Decoder().decode(eval_), true,
                 'decode(Less(1, 1, true))');
+
+        eval_ = new Sao.PYSON.Encoder().encode(new Sao.PYSON.Less(null, 1));
+        QUnit.strictEqual(new Sao.PYSON.Decoder().decode(eval_), true,
+                'decode(Less(null, 1))');
+
+        eval_ = new Sao.PYSON.Encoder().encode(new Sao.PYSON.Less(1, null));
+        QUnit.strictEqual(new Sao.PYSON.Decoder().decode(eval_), false,
+                'decode(Less(1, null))');
     });
 
     QUnit.test('PYSON If', function() {
@@ -1581,6 +1597,22 @@
             ['', ['male', 'female', '']],
             [null, ['male', 'female', '']],
             [['male', 'f'], [['male', 'female']]],
+        ].forEach(test_func, field);
+
+        field = {
+            'type': 'reference',
+            'selection': [
+                ['spam', 'Spam'],
+                ['ham', 'Ham'],
+                ['', ''],
+            ]
+        };
+        [
+            ['s', ['%spam%']],
+            ['test', []],
+            ['', ['%spam%', '%ham%', '%']],
+            [null, ['%spam%', '%ham%', '%']],
+            [['spam', 'h'], [['spam', 'ham']]],
         ].forEach(test_func, field);
 
     });

@@ -708,7 +708,7 @@
             Sao.View.Form.Label._super.init.call(this, attributes);
             this.el = this.label_el = jQuery('<label/>', {
                 text: text,
-                'class': this.class_ + ' form-label'
+                'class': this.class_
             });
         }
     });
@@ -1058,7 +1058,7 @@
             }))).appendTo(this.date);
             this.date.datetimepicker();
             this.date.css('width', this._width);
-            this.date.on('dp.change', this.focus_out.bind(this));
+            this.date.on('dp.hide', this.focus_out.bind(this));
         },
         get_format: function(record, field) {
             return field.date_format(record);
@@ -1712,7 +1712,7 @@
             var record = this.record();
             var value = record.field_get(this.field_name);
 
-            if ((evt.data == 'secondary') &&
+            if ((evt && evt.data == 'secondary') &&
                     !this._readonly &&
                     this.has_target(value)) {
                 this.record().field_set_client(this.field_name,
@@ -1737,7 +1737,8 @@
                     }
                 };
                 win = new Sao.Window.Form(screen, callback.bind(this), {
-                    save_current: true
+                    save_current: true,
+                    title: this.attributes.string
                 });
                 return;
             }
@@ -1764,7 +1765,8 @@
                                 '').split(','),
                             views_preload: (this.attributes.views || {}),
                             new_: this.create_access(),
-                            search_filter: parser.quote(text)
+                            search_filter: parser.quote(text),
+                            title: this.attributes.string
                         });
                 return;
             }
@@ -1787,7 +1789,8 @@
             };
             var win = new Sao.Window.Form(screen, callback.bind(this), {
                 new_: true,
-                save_current: true
+                save_current: true,
+                title: this.attributes.string
             });
         },
         key_press: function(event_) {
@@ -1866,7 +1869,8 @@
                                 views_preload: (this.attributes.views ||
                                     {}),
                                 new_: this.create_access(),
-                                search_filter: parser.quote(text)
+                                search_filter: parser.quote(text),
+                                title: this.attributes.string
                             });
                 }
             }
@@ -2355,7 +2359,8 @@
                                 '').split(','),
                         views_preload: this.attributes.views || {},
                         new_: !this.but_new.prop('disabled'),
-                        search_filter: parser.quote(text)
+                        search_filter: parser.quote(text),
+                        title: this.attributes.string
                     });
         },
         remove: function(event_) {
@@ -2393,7 +2398,8 @@
                 var win = new Sao.Window.Form(this.screen, function() {}, {
                     new_: true,
                     many: field_size,
-                    context: context
+                    context: context,
+                    title: this.attributes.string
                 });
             }
         },
@@ -2430,7 +2436,9 @@
                                     sel_multi: true,
                                     context: context,
                                     domain: domain,
-                                    search_filter: ''
+                                    search_filter: '',
+                                    title: this.attributes.string
+
                         });
                     };
 
@@ -2500,7 +2508,8 @@
             this.validate().done(function() {
                 var record = this.screen.current_record;
                 if (record) {
-                    var win = new Sao.Window.Form(this.screen, function() {});
+                    var win = new Sao.Window.Form(this.screen, function() {},
+                        {title: this.attributes.string});
                 }
             }.bind(this));
         },
@@ -2687,7 +2696,8 @@
                             '').split(','),
                         views_preload: this.attributes.views || {},
                         new_: this.attributes.create,
-                        search_filter: parser.quote(value)
+                        search_filter: parser.quote(value),
+                        title: this.attributes.string
                     });
         },
         remove: function() {
@@ -2709,12 +2719,7 @@
                 this.add();
             }
         },
-        edit: function() {
-            if (jQuery.isEmptyObject(this.screen.current_record)) {
-                return;
-            }
-            // Create a new screen that is not linked to the parent otherwise
-            // on the save of the record will trigger the save of the parent
+        _get_screen_form: function() {
             var domain = this.field().get_domain(this.record());
             var add_remove = this.record().expr_eval(
                     this.attributes.add_remove);
@@ -2722,13 +2727,26 @@
                 domain = [domain, add_remove];
             }
             var context = this.field().get_context(this.record());
-            var screen = new Sao.Screen(this.attributes.relation, {
+            var view_ids = (this.attributes.view_ids || '').split(',');
+            if (!jQuery.isEmptyObject(view_ids)) {
+                // Remove the first tree view as mode is form only
+                view_ids.shift();
+            }
+            return new Sao.Screen(this.attributes.relation, {
                 'domain': domain,
-                'view_ids': (this.attributes.view_ids || '').split(','),
+                'view_ids': view_ids,
                 'mode': ['form'],
                 'views_preload': this.attributes.views,
                 'context': context
             });
+        },
+        edit: function() {
+            if (jQuery.isEmptyObject(this.screen.current_record)) {
+                return;
+            }
+            // Create a new screen that is not linked to the parent otherwise
+            // on the save of the record will trigger the save of the parent
+            var screen = this._get_screen_form();
             screen.new_group([this.screen.current_record.id]);
             var callback = function(result) {
                 if (result) {
@@ -2739,25 +2757,12 @@
                 }
             }.bind(this);
             screen.switch_view().done(function() {
-                new Sao.Window.Form(screen, callback);
+                new Sao.Window.Form(screen, callback,
+                    {title: this.attributes.string});
             });
         },
         new_: function() {
-            var domain = this.field().get_domain(this.record());
-            var add_remove = this.record().expr_eval(
-                    this.attributes.add_remove);
-            if (!jQuery.isEmptyObject(add_remove)) {
-                domain = [domain, add_remove];
-            }
-            var context = this.field().get_context(this.record());
-
-            var screen = new Sao.Screen(this.attributes.relation, {
-                'domain': domain,
-                'view_ids': (this.attributes.view_ids || '').split(','),
-                'mode': ['form'],
-                'views_preload': this.attributes.views,
-                'context': context
-            });
+            var screen = this._get_screen_form();
             var callback = function(result) {
                 if (result) {
                     var record = screen.current_record;
@@ -2768,7 +2773,8 @@
             screen.switch_view().done(function() {
                 new Sao.Window.Form(screen, callback, {
                     'new_': true,
-                    'save_current': true
+                    'save_current': true,
+                    title: this.attributes.string
                 });
             });
         }
@@ -2934,7 +2940,8 @@
             }).appendTo(this.el);
             this.size = jQuery('<input/>', {
                 type: 'input',
-                'class': 'form-control input-sm'
+                'class': 'form-control input-sm',
+                'readonly': true
             }).appendTo(group);
 
             this.toolbar('input-group-btn').appendTo(group);
@@ -3095,7 +3102,7 @@
                 if (!data) {
                     url = null;
                 } else {
-                    blob = new Blob([data[0][this.field_name]]);
+                    blob = new Blob([data]);
                     url = window.URL.createObjectURL(blob);
                 }
                 this.image.attr('src', url);
@@ -3305,7 +3312,8 @@
                         context: context,
                         domain: domain,
                         new_: false,
-                        search_filter: parser.quote(value)
+                        search_filter: parser.quote(value),
+                        title: this.attributes.string
                     });
         },
         add_new_keys: function(ids) {
@@ -3639,7 +3647,7 @@
             this.input.datetimepicker({
                 'format': Sao.common.moment_format(this.format)
             });
-            this.input.on('dp.change',
+            this.input.on('dp.hide',
                     this.parent_widget.focus_out.bind(this.parent_widget));
         },
         get_value: function() {

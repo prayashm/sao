@@ -45,6 +45,11 @@
             this.domain = kwargs.domain || null;
             this.context = kwargs.context || null;
             this.save_current = kwargs.save_current;
+            var title_prm = jQuery.when(kwargs.title || '');
+            title_prm.then(function(title) {
+                this.title = title;
+            }.bind(this));
+
             this.prev_view = screen.current_view;
             this.screen.screen_container.alternate_view = true;
             this.info_bar = new Sao.Window.InfoBar();
@@ -215,7 +220,7 @@
 
 
             switch_prm.done(function() {
-                dialog.add_title(this.screen.current_view.attributes.string);
+                title_prm.done(dialog.add_title.bind(dialog));
                 dialog.body.append(this.screen.screen_container.alternate_viewport);
                 this.el.modal('show');
             }.bind(this));
@@ -384,7 +389,6 @@
             this.resource = record.model.name + ',' + record.id;
             this.attachment_callback = callback;
             var context = jQuery.extend({}, record.get_context());
-            context.resource = this.resource;
             var screen = new Sao.Screen('ir.attachment', {
                 domain: [['resource', '=', this.resource]],
                 mode: ['tree', 'form'],
@@ -394,8 +398,11 @@
             screen.switch_view().done(function() {
                 screen.search_filter();
             });
+            var title = record.rec_name().then(function(rec_name) {
+                return Sao.i18n.gettext('Attachments (%1)', rec_name);
+            });
             Sao.Window.Attachment._super.init.call(this, screen, this.callback,
-                {view_type: 'tree'});
+                {view_type: 'tree', title: title});
         },
         callback: function(result) {
             var prm = jQuery.when();
@@ -416,8 +423,7 @@
         init: function(record, callback) {
             this.resource = record.model.name + ',' + record.id;
             this.note_callback = callback;
-            var context = record.get_context();
-            context.resource = this.resource;
+            var context = jQuery.extend({}, record.get_context());
             var screen = new Sao.Screen('ir.note', {
                 domain: [['resource', '=', this.resource]],
                 mode: ['tree', 'form'],
@@ -427,8 +433,11 @@
             screen.switch_view().done(function() {
                 screen.search_filter();
             });
+            var title = record.rec_name().then(function(rec_name) {
+                return Sao.i18n.gettext('Notes (%1)', rec_name);
+            });
             Sao.Window.Note._super.init.call(this, screen, this.callback,
-                    {view_type: 'tree'});
+                {view_type: 'tree', title: title});
         },
         callback: function(result) {
             var prm = jQuery.when();
@@ -460,7 +469,9 @@
             this.context = kwargs.context || {};
             this.sel_multi = kwargs.sel_multi;
             this.callback = callback;
-            var dialog = new Sao.Dialog('Search', '', 'lg');
+            this.title = kwargs.title || '';
+            var dialog = new Sao.Dialog(Sao.i18n.gettext(
+                'Search %1', this.title), '', 'lg');
             this.el = dialog.modal;
 
             jQuery('<button/>', {
@@ -547,7 +558,8 @@
                 };
                 this.el.modal('hide');
                 new Sao.Window.Form(screen, callback.bind(this), {
-                    new_: true
+                    new_: true,
+                    title: this.title
                 });
                 return;
             }
@@ -601,14 +613,17 @@
                 }.bind(this));
             };
             var set_preferences = function(preferences) {
+                var prm;
                 this.screen.current_record.cancel();
-                this.screen.current_record.set(preferences);
+                prm = this.screen.current_record.set(preferences);
                 this.screen.current_record.id =
                     this.screen.model.session.user_id;
-                this.screen.current_record.validate(null, true).then(
+                prm.then(function() {
+                    this.screen.current_record.validate(null, true).then(
                         function() {
                             this.screen.display(true);
                         }.bind(this));
+                }.bind(this));
                 dialog.body.append(this.screen.screen_container.el);
                 this.el.modal('show');
             };
@@ -695,7 +710,7 @@
                 this.select.append(jQuery('<option/>', {
                     value: revision.valueOf(),
                     text: Sao.common.format_datetime(
-                        date_format, time_format, revision) + ' ' + name
+                        date_format, time_format, revision) + ' ' + this.title
                 }));
             }.bind(this));
             this.el.modal('show');
