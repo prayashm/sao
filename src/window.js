@@ -861,8 +861,6 @@
                 'class' : 'form-inline'
             }).appendTo(this.dialog.body);
 
-            jQuery('<hr>').appendTo(this.dialog.body);
-
             var row_csv_param = jQuery('<div/>', {
                 'class' : 'row'
             }).appendTo(this.dialog.body);
@@ -1008,12 +1006,14 @@
                 'id' : 'input-csv-file'
             });
 
-            jQuery('<div>', {
+            jQuery('<div/>', {
                 'class' : 'form-group'
             }).append(chooser_label).append(jQuery('<div/>', {
                 'class' : 'col-sm-8'
             }).append(this.file_input))
             .appendTo(this.chooser_form);
+
+            jQuery('<hr>').insertAfter(this.chooser_form);
 
             var skip_label = jQuery('<label/>', {
                 'text' : Sao.i18n.gettext('Lines to Skip:'),
@@ -1304,18 +1304,6 @@
                 this.remove_predef();
             }.bind(this)).append(Sao.i18n.gettext(' Delete Export'))
             .appendTo(this.column_buttons);
-
-            this.saveas = jQuery('<select/>', {
-                'class' : 'form-control',
-                // Expands the chooser within dialog like GTK Client
-                'width' : '100%'
-            }).append(jQuery('<option/>', {
-                'val': 'open',
-                'text' : Sao.i18n.gettext('Open')
-            })).append(jQuery('<option/>', {
-                'val' : 'save',
-                'text' : Sao.i18n.gettext('Save')
-            })).appendTo(this.chooser_form);
 
             this.el_add_field_names = jQuery('<input/>', {
                 'type' : 'checkbox',
@@ -1617,25 +1605,18 @@
                     fields.push(field.getAttribute('path'));
                     fields2.push(field.innerText);
                 });
-                var action = this.saveas.val();
                 Sao.rpc({
                     'method': 'model.' + this.screen.model_name +
                         '.export_data',
                     'params': [this.ids, fields, {}]
                 }, this.session).then(function(data) {
-                    if (action == 'open') {
-                        this.export_csv(fields2, data, false);
-                    }
-                    else {
-                        this.export_csv(fields2, data, true);
-                    }
+                    this.export_csv(fields2, data);
                 }.bind(this));
             } else {
                 this.el.modal('hide');
             }
         },
-        export_csv: function(fname, fields, data, popup) {
-            // TODO: custom quote character, encoding
+        export_csv: function(fields, data) {
             var encoding = this.el_csv_encoding.val();
             var unparse_obj = {};
             unparse_obj.data = data;
@@ -1643,9 +1624,10 @@
                 unparse_obj.fields = fields;
             }
             var csv = Papa.unparse(unparse_obj, {
+                // TODO quoteChar: this.el_csv_quotechar.val(),
                 delimiter: this.el_csv_delimiter.val()
             });
-            var blob = new Blob([csv], {type: 'text/csv'});
+            var blob = new Blob([csv], {type: 'text/csv;charset=' + encoding});
             var blob_url = window.URL.createObjectURL(blob);
             if (this.blob_url) {
                 window.URL.revokeObjectURL(this.blob_url);
@@ -1653,11 +1635,9 @@
             this.blob_url = blob_url;
             window.open(blob_url);
 
-            if (popup) {
-                Sao.common.message.run(
-                    Sao.i18n.ngettext('%1 record saved',
-                        '%1 records saved', data.length));
-            }
+            Sao.common.message.run(
+                Sao.i18n.ngettext('%1 record saved', '%1 records saved',
+                    data.length));
         }
     });
 
