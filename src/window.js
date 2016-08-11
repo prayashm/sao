@@ -935,7 +935,7 @@
                 'size' : '1',
                 'maxlength' : '1',
                 'value' : '\"',
-                'readonly': ''
+                'readonly': '' // Until PapaParse releases custom quote feature
             });
 
             jQuery('<div/>', {
@@ -1006,7 +1006,7 @@
             }).append(jQuery('<i/>', {
                     'class': 'glyphicon glyphicon-search'
             })).click(function(){
-                this.auto_detect();
+                this.autodetect();
             }.bind(this)).append(Sao.i18n.gettext(' Auto-Detect'))
             .appendTo(this.column_buttons);
 
@@ -1127,7 +1127,7 @@
             }.bind(this));
             return dfd.promise();
         },
-        auto_detect: function() {
+        autodetect: function() {
             var fname = this.file_input.val();
             if(!fname){
                 Sao.common.message.run(
@@ -1260,9 +1260,10 @@
                         'method' : 'model.' + this.screen.model_name +
                         '.import_data',
                         'params' : [fields, data, {}]
-                    }, this.session).done(function(count) {                            Sao.common.message.run(
-                        Sao.i18n.ngettext('%1 record imported',
-                            '%1 records imported', count));
+                    }, this.session).done(function(count) {
+                        Sao.common.message.run(
+                            Sao.i18n.ngettext('%1 record imported',
+                                '%1 records imported', count));
                     });
                 }.bind(this)
             });
