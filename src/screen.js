@@ -627,6 +627,7 @@
             this.size_limit = null;
             this.limit = attributes.limit || Sao.config.limit;
             this.offset = 0;
+            this.order = attributes.order;
             var access = Sao.common.MODELACCESS.get(model_name);
             if (!(access.write || access.create)) {
                 this.attributes.readonly = true;
@@ -778,7 +779,8 @@
             }.bind(this);
             return _switch();
         },
-        search_filter: function(search_string) {
+        search_filter: function(search_string, only_ids) {
+            only_ids = only_ids || false;
             if (this.context_screen) {
                 if (this.context_screen_prm.state() == 'pending') {
                     return this.context_screen_prm.then(function() {
@@ -827,9 +829,12 @@
             }
 
             var grp_prm = this.model.find(domain, this.offset, this.limit,
-                    this.attributes.order, this.context);
-            var count_prm = this.model.execute('search_count', [domain],
-                    this.context);
+                    this.order, this.context);
+            var count_prm = jQuery.when(this.search_count);
+            if (!only_ids) {
+                count_prm = this.model.execute('search_count', [domain],
+                        this.context);
+            }
             count_prm.done(function(count) {
                 this.search_count = count;
             }.bind(this));
@@ -1009,7 +1014,7 @@
                 return this.current_record.id;
             }
         },
-        new_: function(default_) {
+        new_: function(default_, rec_name) {
             if (default_ === undefined) {
                 default_ = true;
             }
@@ -1027,7 +1032,7 @@
                 } else {
                     group = this.group;
                 }
-                var record = group.new_(default_);
+                var record = group.new_(default_, undefined, rec_name);
                 group.add(record, this.new_model_position());
                 this.set_current_record(record);
                 this.display().done(function() {

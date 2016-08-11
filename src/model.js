@@ -161,11 +161,11 @@
                 }
             }
         };
-        array.new_ = function(default_, id) {
+        array.new_ = function(default_, id, rec_name) {
             var record = new Sao.Record(this.model, id);
             record.group = this;
             if (default_) {
-                record.default_get();
+                record.default_get(rec_name);
             }
             return record;
         };
@@ -436,6 +436,15 @@
                 });
             };
             return jQuery.when().then(browse_child);
+        };
+        array.sort = function(ids) {
+                var id2record = {};
+                this.forEach(function(record) {
+                    id2record[record.id] = record;
+                });
+                ids.forEach(function(ordered_record, i){
+                    this[i] = id2record[ordered_record.id];
+                }.bind(this));
         };
         return array;
     };
@@ -783,7 +792,7 @@
         field_set_client: function(name, value, force_change) {
             this.model.fields[name].set_client(this, value, force_change);
         },
-        default_get: function() {
+        default_get: function(rec_name) {
             var dfd = jQuery.Deferred();
             var promises = [];
             // Ensure promisses is filled before default_get is resolved
@@ -795,8 +804,12 @@
                 }
             }
             if (!jQuery.isEmptyObject(this.model.fields)) {
+                var context = this.get_context();
+                if (context.default_rec_name === undefined) {
+                    context.default_rec_name = rec_name;
+                }
                 var prm = this.model.execute('default_get',
-                        [Object.keys(this.model.fields)], this.get_context());
+                        [Object.keys(this.model.fields)], context);
                 prm.then(function(values) {
                     if (this.group.parent &&
                             this.group.parent_name in this.group.model.fields) {
@@ -1801,14 +1814,17 @@
         _set_value: function(record, value, default_) {
             this._set_default_value(record);
             var group = record._values[this.name];
+            var prm = jQuery.when();
+            if (jQuery.isEmptyObject(value)) {
+                return prm;
+            }
             var mode;
-            if ((value instanceof Array) && !isNaN(parseInt(value[0], 10))) {
+            if (!isNaN(parseInt(value[0], 10))) {
                 mode = 'list ids';
             } else {
                 mode = 'list values';
             }
-            var prm = jQuery.when();
-            if ((mode == 'list values') && !jQuery.isEmptyObject(value)) {
+            if (mode == 'list values') {
                 var context = this.get_context(record);
                 var field_names = {};
                 value.forEach(function(val) {
