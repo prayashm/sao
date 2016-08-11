@@ -835,7 +835,7 @@
                 this.fields_all.find('.bg-primary').each(function(i, el_field) {
                     this.sig_sel_add(el_field);
                 }.bind(this));
-            }.bind(this)).append(Sao.i18n.gettext(' Add'))
+            }.bind(this)).append(' '+Sao.i18n.gettext('Add'))
             .appendTo(this.column_buttons);
 
             jQuery('<button/>', {
@@ -846,7 +846,7 @@
             })).click(function(){
                 // sig_unsel
                 this.fields_selected.children('li.bg-primary').remove();
-            }.bind(this)).append(Sao.i18n.gettext(' Remove'))
+            }.bind(this)).append(' '+Sao.i18n.gettext('Remove'))
             .appendTo(this.column_buttons);
 
             jQuery('<button/>', {
@@ -856,7 +856,7 @@
                     'class': 'glyphicon glyphicon-remove'
             })).click(function(){
                 this.fields_selected.empty();
-            }.bind(this)).append(Sao.i18n.gettext(' Clear'))
+            }.bind(this)).append(' '+Sao.i18n.gettext('Clear'))
             .appendTo(this.column_buttons);
 
             jQuery('<hr>').appendTo(this.column_buttons);
@@ -1007,7 +1007,7 @@
                     'class': 'glyphicon glyphicon-search'
             })).click(function(){
                 this.autodetect();
-            }.bind(this)).append(Sao.i18n.gettext(' Auto-Detect'))
+            }.bind(this)).append(' '+Sao.i18n.gettext('Auto-Detect'))
             .appendTo(this.column_buttons);
 
             var chooser_label = jQuery('<label/>', {
@@ -1308,7 +1308,7 @@
                     'class': 'glyphicon glyphicon-floppy-save'
             })).click(function(){
                 this.addreplace_predef();
-            }.bind(this)).append(Sao.i18n.gettext(' Save Export'))
+            }.bind(this)).append(' '+Sao.i18n.gettext('Save Export'))
             .appendTo(this.column_buttons);
 
             jQuery('<button/>', {
@@ -1318,7 +1318,7 @@
                     'class': 'glyphicon glyphicon-floppy-remove'
             })).click(function(){
                 this.remove_predef();
-            }.bind(this)).append(Sao.i18n.gettext(' Delete Export'))
+            }.bind(this)).append(' '+Sao.i18n.gettext('Delete Export'))
             .appendTo(this.column_buttons);
 
             this.el_add_field_names = jQuery('<input/>', {
@@ -1331,7 +1331,7 @@
             }).append(jQuery('<div/>', {
                 'class' : 'col-md-6'
             }).append(jQuery('<label/>', {
-                'text' : Sao.i18n.gettext(' Add Field Names')
+                'text' : ' '+Sao.i18n.gettext('Add Field Names')
             }).prepend(this.el_add_field_names))).appendTo(this.expander_csv);
         },
         model_populate: function(fields, parent_node, prefix_field,
